@@ -1,0 +1,342 @@
+import { useState, useEffect } from 'react';
+import { Box, Card, CardContent, Typography, Alert, CircularProgress } from '@mui/material';
+import { RegistrationForm, type RegistrationData } from '../components/auth/RegistrationForm';
+import { EmailConfirmationScreen } from '../components/auth/EmailConfirmationScreen';
+import { UniqueCodeDisplay } from '../components/dashboard/UniqueCodeDisplay';
+import { ITTopLogo } from '../components/ui/ITTopLogo';
+import { generateUniqueCode } from '../services/codeGenerator';
+import type { User } from '../types';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../services/supabase';
+
+type Mode = 'register' | 'login';
+
+export function RegisterPage() {
+  const [mode, setMode] = useState<Mode>('register');
+  const [registeredUser, setRegisteredUser] = useState<User | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [configLoading, setConfigLoading] = useState(true);
+  const [registrationBlocked, setRegistrationBlocked] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
+  const navigate = useNavigate();
+
+  // 🔹 Проверяем настройки регистрации при загрузке
+  useEffect(() => {
+    const checkRegistrationPeriod = async () => {
+      try {
+        console.log(' Загрузка конфига регистрации...');
+        
+        const { data: config, error } = await supabase
+          .from('hackathon_config')
+          .select('registration_start, registration_end')
+          .single();
+        
+        if (error) {
+          console.error('❌ Ошибка загрузки конфига:', error);
+          setRegistrationBlocked(false);
+          return;
+        }
+        
+        console.log('✅ Загруженный конфиг:', config);
+        
+        if (config) {
+          const now = new Date();
+          const start = config.registration_start ? new Date(config.registration_start) : null;
+          const end = config.registration_end ? new Date(config.registration_end) : null;
+          
+          console.log('🕐 Текущее время:', now);
+          console.log('📅 Начало регистрации:', start);
+          console.log('📅 Конец регистрации:', end);
+          
+          if (start && end) {
+            const isWithinRange = now >= start && now <= end;
+            console.log('✅ В диапазоне?', isWithinRange);
+            setRegistrationBlocked(!isWithinRange);
+          } else {
+            console.log('⚠️ Даты не заданы — регистрация открыта');
+            setRegistrationBlocked(false);
+          }
+        } else {
+          console.log('⚠️ Конфиг пуст — регистрация открыта');
+          setRegistrationBlocked(false);
+        }
+      } catch (err) {
+        console.error('❌ Ошибка проверки регистрации:', err);
+        setRegistrationBlocked(false);
+      } finally {
+        setConfigLoading(false);
+      }
+    };
+    
+    checkRegistrationPeriod();
+  }, []);
+
+  const handleRegister = async (data: RegistrationData): Promise<User | null> => {
+    setSubmitError(null);
+    
+    // 🔹 Проверка: если регистрация заблокирована
+    console.log('🔒 registrationBlocked:', registrationBlocked);
+    if (mode === 'register' && registrationBlocked) {
+      console.log('❌ Регистрация заблокирована!');
+      throw new Error('Регистрация недоступна. Ждём вас на следующем хакатоне!');
+    }
+    
+    console.log('✅ Регистрация разрешена');
+    
+    try {
+      if (mode === 'register') {
+        // === РЕГИСТРАЦИЯ ===
+        
+        // 🔥 1. Проверяем email в profiles
+        const { data: existingEmail } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', data.email?.toLowerCase().trim())
+          .maybeSingle();
+        
+        if (existingEmail) {
+          throw new Error('Пользователь с таким email уже зарегистрирован');
+        }
+        
+        // 🔥 2. Проверяем телефон в profiles
+        const phoneDigits = data.phone?.replace(/\D/g, '');
+        if (phoneDigits) {
+          const { data: existingPhone } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('phone', phoneDigits)
+            .maybeSingle();
+          
+          if (existingPhone) {
+            throw new Error('Пользователь с таким номером телефона уже зарегистрирован');
+          }
+        }
+        
+        // 3. Генерируем уникальный код
+        let uniqueCode = generateUniqueCode();
+        let attempts = 0;
+        while (attempts < 10) {
+          const { data: existingCode } = await supabase
+            .from('profiles')
+            .select('unique_code')
+            .eq('unique_code', uniqueCode)
+            .maybeSingle();
+          
+          if (!existingCode) break;
+          uniqueCode = generateUniqueCode();
+          attempts++;
+        }
+        
+        // 4. Регистрируем через Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: (data.email || '').toLowerCase().trim(),
+          password: data.password || '',
+          options: {
+            data: {
+              full_name: data.fullName.trim(),
+              phone: phoneDigits,
+              unique_code: uniqueCode,
+              group_name: data.groupName?.trim(),
+              telegram_link: data.telegramLink?.trim(),
+            },
+          },
+        });
+
+        if (authError) {
+          console.error('❌ Auth error:', authError);
+          
+          if (authError.message?.includes('User already registered')) {
+            throw new Error('Пользователь с таким email уже зарегистрирован');
+          }
+          if (authError.message?.includes('Invalid email')) {
+            throw new Error('Неверный формат email');
+          }
+          if (authError.message?.includes('Weak password')) {
+            throw new Error('Слишком слабый пароль');
+          }
+          if (authError.status === 500 || authError.name === 'AuthRetryableFetchError') {
+            throw new Error('Ошибка сервера. Попробуйте позже');
+          }
+          
+          throw new Error(authError.message || 'Ошибка регистрации');
+        }
+        
+        if (!authData.user) {
+          throw new Error('Ошибка регистрации: пользователь не создан');
+        }
+
+        // 🔥 Проверяем, подтверждён ли email
+        const isEmailConfirmed = !!authData.user.email_confirmed_at;
+
+        return {
+          id: authData.user.id,
+          email: (data.email || '').toLowerCase().trim(),
+          fullName: data.fullName.trim(),
+          groupName: data.groupName?.trim() || '',
+          phone: phoneDigits || '',
+          telegramLink: data.telegramLink?.trim(),
+          uniqueCode,
+          role: 'user',
+          createdAt: new Date().toISOString(),
+          emailConfirmed: isEmailConfirmed,
+        };
+
+      } else {
+        // === ВХОД ===
+        
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: (data.email || '').toLowerCase().trim(),
+          password: data.password || '',
+        });
+
+        if (authError) {
+          console.error('❌ Login error:', authError);
+          
+          if (authError.message?.includes('Invalid login credentials')) {
+            throw new Error('Неверный email или пароль');
+          }
+          if (authError.status === 500 || authError.name === 'AuthRetryableFetchError') {
+            throw new Error('Ошибка сервера. Попробуйте позже');
+          }
+          
+          throw new Error(authError.message || 'Ошибка входа');
+        }
+        
+        if (!authData.user) {
+          throw new Error('Пользователь не найден');
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', authData.user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('❌ Profile error:', profileError);
+          throw new Error('Ошибка загрузки профиля');
+        }
+
+        return {
+          id: authData.user.id,
+          email: authData.user.email || (data.email || '').toLowerCase().trim(),
+          fullName: profile?.full_name || data.fullName,
+          groupName: profile?.group_name || data.groupName || '',
+          phone: profile?.phone || data.phone || '',
+          telegramLink: profile?.telegram_link || data.telegramLink,
+          uniqueCode: profile?.unique_code || '',
+          role: profile?.role || 'user',
+          avatarUrl: profile?.avatar_url,
+          createdAt: profile?.created_at || new Date().toISOString(),
+          emailConfirmed: !!profile?.email_confirmed_at || !!authData.user.email_confirmed_at,
+        };
+      }
+    } catch (err: any) {
+      console.error('💥 Register error:', err);
+      
+      // 🔥 Если это Error с message — просто пробрасываем дальше
+      if (err?.message) {
+        throw err;
+      }
+      
+      // 🔥 Если совсем пустая ошибка
+      throw new Error('Произошла неизвестная ошибка. Попробуйте позже');
+    }
+  };
+
+  const handleSuccess = (user: User) => {
+    // 🔥 Если email не подтверждён — показываем экран подтверждения
+    if (!user.emailConfirmed) {
+      setRegisteredEmail(user.email);
+      setShowEmailConfirmation(true);
+      return;
+    }
+    
+    // Если подтверждён — стандартный успех
+    setRegisteredUser(user);
+    localStorage.setItem('hackathon_current_user', JSON.stringify(user));
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 2000);
+  };
+
+  // 🔹 Экран подтверждения email
+  if (showEmailConfirmation) {
+    return (
+      <EmailConfirmationScreen 
+        email={registeredEmail}
+        onResend={() => {
+          setSubmitError('✅ Письмо отправлено ещё раз! Проверьте почту.');
+        }}
+      />
+    );
+  }
+
+  // 🔹 Экран загрузки конфига
+  if (configLoading) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // 🔹 Экран успеха
+  if (registeredUser) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', p: 2 }}>
+        <Card sx={{ maxWidth: 400, width: '100%', textAlign: 'center' }}>
+          <CardContent>
+            <ITTopLogo size="large" variant="color" />
+            <Typography variant="h5" color="success.main" fontWeight={600} mb={2} mt={2}>
+              ✓ {mode === 'login' ? 'Вход выполнен!' : 'Регистрация успешна!'}
+            </Typography>
+            <Typography variant="body1" mb={3}>
+              Ваш уникальный код:
+            </Typography>
+            <UniqueCodeDisplay code={registeredUser.uniqueCode} large />
+            <Typography variant="body2" color="text.secondary" mt={2}>
+              Переход в личный кабинет...
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', p: 2, bgcolor: '#F8F9FA' }}>
+      <Card sx={{ width: '100%', maxWidth: 520, boxShadow: '0 8px 32px rgba(149, 0, 211, 0.15)' }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ mb: 2 }}>
+            <ITTopLogo size="large" variant="color" />
+          </Box>
+          
+          {submitError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setSubmitError(null)}>
+              {submitError}
+            </Alert>
+          )}
+          
+          {mode === 'register' && registrationBlocked && (
+            <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
+              <Typography fontWeight={600} mb={1}> Регистрация временно недоступна</Typography>
+              <Typography variant="body2">
+                Ждём вас на следующем хакатоне! Следите за анонсами.
+              </Typography>
+            </Alert>
+          )}
+          
+          <RegistrationForm 
+            mode={mode}
+            onSubmit={handleRegister} 
+            onSuccess={handleSuccess}
+            onModeChange={setMode}
+            disabled={mode === 'register' && registrationBlocked}
+          />
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
