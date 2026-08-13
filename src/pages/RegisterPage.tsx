@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Alert, CircularProgress } from '@mui/material';
 import { RegistrationForm, type RegistrationData } from '../components/auth/RegistrationForm';
-import { EmailConfirmationScreen } from '../components/auth/EmailConfirmationScreen';
 import { UniqueCodeDisplay } from '../components/dashboard/UniqueCodeDisplay';
 import { ITTopLogo } from '../components/ui/ITTopLogo';
 import { generateUniqueCode } from '../services/codeGenerator';
@@ -17,16 +16,12 @@ export function RegisterPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [registrationBlocked, setRegistrationBlocked] = useState(false);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
   const navigate = useNavigate();
 
   // 🔹 Проверяем настройки регистрации при загрузке
   useEffect(() => {
     const checkRegistrationPeriod = async () => {
       try {
-        console.log(' Загрузка конфига регистрации...');
-        
         const { data: config, error } = await supabase
           .from('hackathon_config')
           .select('registration_start, registration_end')
@@ -38,27 +33,18 @@ export function RegisterPage() {
           return;
         }
         
-        console.log('✅ Загруженный конфиг:', config);
-        
         if (config) {
           const now = new Date();
           const start = config.registration_start ? new Date(config.registration_start) : null;
           const end = config.registration_end ? new Date(config.registration_end) : null;
           
-          console.log('🕐 Текущее время:', now);
-          console.log('📅 Начало регистрации:', start);
-          console.log('📅 Конец регистрации:', end);
-          
           if (start && end) {
             const isWithinRange = now >= start && now <= end;
-            console.log('✅ В диапазоне?', isWithinRange);
             setRegistrationBlocked(!isWithinRange);
           } else {
-            console.log('⚠️ Даты не заданы — регистрация открыта');
             setRegistrationBlocked(false);
           }
         } else {
-          console.log('⚠️ Конфиг пуст — регистрация открыта');
           setRegistrationBlocked(false);
         }
       } catch (err) {
@@ -75,14 +61,9 @@ export function RegisterPage() {
   const handleRegister = async (data: RegistrationData): Promise<User | null> => {
     setSubmitError(null);
     
-    // 🔹 Проверка: если регистрация заблокирована
-    console.log('🔒 registrationBlocked:', registrationBlocked);
     if (mode === 'register' && registrationBlocked) {
-      console.log('❌ Регистрация заблокирована!');
       throw new Error('Регистрация недоступна. Ждём вас на следующем хакатоне!');
     }
-    
-    console.log('✅ Регистрация разрешена');
     
     try {
       if (mode === 'register') {
@@ -166,9 +147,7 @@ export function RegisterPage() {
           throw new Error('Ошибка регистрации: пользователь не создан');
         }
 
-        // 🔥 Проверяем, подтверждён ли email
-        const isEmailConfirmed = !!authData.user.email_confirmed_at;
-
+        // 🔥 С email confirmation отключён — сразу считаем подтверждённым
         return {
           id: authData.user.id,
           email: (data.email || '').toLowerCase().trim(),
@@ -179,7 +158,6 @@ export function RegisterPage() {
           uniqueCode,
           role: 'user',
           createdAt: new Date().toISOString(),
-          emailConfirmed: isEmailConfirmed,
         };
 
       } else {
@@ -229,49 +207,27 @@ export function RegisterPage() {
           role: profile?.role || 'user',
           avatarUrl: profile?.avatar_url,
           createdAt: profile?.created_at || new Date().toISOString(),
-          emailConfirmed: !!profile?.email_confirmed_at || !!authData.user.email_confirmed_at,
         };
       }
     } catch (err: any) {
       console.error('💥 Register error:', err);
       
-      // 🔥 Если это Error с message — просто пробрасываем дальше
       if (err?.message) {
         throw err;
       }
       
-      // 🔥 Если совсем пустая ошибка
       throw new Error('Произошла неизвестная ошибка. Попробуйте позже');
     }
   };
 
   const handleSuccess = (user: User) => {
-    // 🔥 Если email не подтверждён — показываем экран подтверждения
-    if (!user.emailConfirmed) {
-      setRegisteredEmail(user.email);
-      setShowEmailConfirmation(true);
-      return;
-    }
-    
-    // Если подтверждён — стандартный успех
+    // 🔥 Email confirmation отключён — сразу редиректим в дашборд
     setRegisteredUser(user);
     localStorage.setItem('hackathon_current_user', JSON.stringify(user));
     setTimeout(() => {
       navigate('/dashboard');
     }, 2000);
   };
-
-  // 🔹 Экран подтверждения email
-  if (showEmailConfirmation) {
-    return (
-      <EmailConfirmationScreen 
-        email={registeredEmail}
-        onResend={() => {
-          setSubmitError('✅ Письмо отправлено ещё раз! Проверьте почту.');
-        }}
-      />
-    );
-  }
 
   // 🔹 Экран загрузки конфига
   if (configLoading) {
@@ -321,7 +277,7 @@ export function RegisterPage() {
           
           {mode === 'register' && registrationBlocked && (
             <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-              <Typography fontWeight={600} mb={1}> Регистрация временно недоступна</Typography>
+              <Typography fontWeight={600} mb={1}>⏳ Регистрация временно недоступна</Typography>
               <Typography variant="body2">
                 Ждём вас на следующем хакатоне! Следите за анонсами.
               </Typography>
