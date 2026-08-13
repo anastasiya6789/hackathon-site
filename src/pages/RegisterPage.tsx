@@ -1,4 +1,4 @@
-так, ясно, значит надо убрать подтверждение по почте.  import { useState, useEffect } from 'react';
+ import { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Alert, CircularProgress } from '@mui/material';
 import { RegistrationForm, type RegistrationData } from '../components/auth/RegistrationForm';
 import { EmailConfirmationScreen } from '../components/auth/EmailConfirmationScreen';
