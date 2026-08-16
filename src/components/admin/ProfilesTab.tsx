@@ -23,74 +23,102 @@ export function ProfilesTab({ profilesPending, setProfilesPending, setError, set
   }>({ open: false, type: 'approve', id: '', field: 'all' });
 
   // 🔹 Обработка модерации одного поля
-  const handleFieldModeration = async (userId: string, field: 'full_name' | 'avatar' | 'group_name', approved: boolean, customValue?: string) => {
-    try {
-      const updates: any = {};
-      
-      if (field === 'full_name') {
-        updates.full_name_status = approved ? 'approved' : 'rejected';
-        if (approved) {
-          updates.full_name = customValue || updates.full_name;
-          updates.name_locked = true;
-        }
-      } else if (field === 'avatar') {
-        updates.avatar_status = approved ? 'approved' : 'rejected';
-        if (approved && customValue) {
-          updates.avatar_url = customValue;
-        }
-      } else if (field === 'group_name') {
-        updates.group_name_status = approved ? 'approved' : 'rejected';
-        if (approved && customValue) {
-          updates.group_name = customValue;
-        }
+  // 🔹 Обработка модерации одного поля
+const handleFieldModeration = async (userId: string, field: 'full_name' | 'avatar' | 'group_name', approved: boolean, customValue?: string) => {
+  console.log(`🔍 Начата модерация: field=${field}, approved=${approved}, userId=${userId}`);
+  
+  try {
+    const updates: any = {};
+    
+    if (field === 'full_name') {
+      updates.full_name_status = approved ? 'approved' : 'rejected';
+      if (approved && customValue) {
+        updates.full_name = customValue;
       }
-      
-      if (note) updates[`${field}_note`] = note;
-
-      const { error: dbError } = await supabase.from('profiles').update(updates).eq('id', userId);
-      if (dbError) throw dbError;
-
-      const fieldLabels: any = { full_name: 'имя', avatar: 'фото', group_name: 'группа' };
-      const fieldLabelsNominative: any = { full_name: 'Имя', avatar: 'Фото', group_name: 'Группа' };
-      const fieldLabelsDative: any = { full_name: 'имя', avatar: 'фото', group_name: 'группу' };
-      
-      if (approved) {
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          type: `moderation_${field}`,
-          title: `${fieldLabelsNominative[field]} одобр${field === 'group_name' ? 'ена' : 'ено'}`,
-          message: `Ваш${field === 'group_name' ? 'а' : 'е'} ${fieldLabels[field]} успешно подтвержден${field === 'group_name' ? 'а' : 'о'}.`,
-          created_at: new Date().toISOString()
-        });
-      } else {
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          type: `moderation_${field}_rejected`,
-          title: `${fieldLabelsNominative[field]} отклонен${field === 'group_name' ? 'а' : 'о'}`,
-          message: `${fieldLabelsNominative[field]} отклонен${field === 'group_name' ? 'а' : 'о'} администратором. Причина: ${note}. Вы можете изменить ${fieldLabelsDative[field]} до конца регистрации.`,
-          created_at: new Date().toISOString()
-        });
+      updates.name_locked = true;
+    } else if (field === 'avatar') {
+      updates.avatar_status = approved ? 'approved' : 'rejected';
+      if (approved && customValue) {
+        updates.avatar_url = customValue;
       }
-
-      setSuccess(`✅ ${fieldLabels[field]} ${approved ? 'одобр' + (field === 'group_name' ? 'ена' : 'ено') : 'отклон' + (field === 'group_name' ? 'ена' : 'ено')}`);
-      setTimeout(() => setSuccess(null), 2000);
-      
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('*')
-        .or('full_name_status.eq.pending,full_name_status.eq.rejected,avatar_status.eq.pending,avatar_status.eq.rejected,group_name_status.eq.pending,group_name_status.eq.rejected');
-      
-      const profilesWithPending = profiles?.filter(p => 
-        p.full_name_status === 'pending' || 
-        p.avatar_status === 'pending' || 
-        p.group_name_status === 'pending'
-      ) || [];
-      setProfilesPending(profilesWithPending);
-      
-    } catch (err: any) {
-      setError(err.message);
+    } else if (field === 'group_name') {
+      updates.group_name_status = approved ? 'approved' : 'rejected';
+      if (approved && customValue) {
+        updates.group_name = customValue;
+      }
     }
-  };
+    
+    if (note) updates[`${field}_note`] = note;
+
+    // 🔥 Обновляем профиль
+    console.log(`📝 Обновляем профиль ${userId}:`, updates);
+    const { data: profileData, error: dbError } = await supabase.from('profiles').update(updates).eq('id', userId);
+    
+    if (dbError) {
+      console.error('❌ Ошибка обновления профиля:', dbError);
+      throw dbError;
+    }
+    
+    console.log('✅ Профиль обновлён:', profileData);
+
+    // 🔥 Формируем текст уведомления
+    const fieldLabels: Record<string, string> = { full_name: 'имя', avatar: 'фото', group_name: 'группа' };
+const fieldLabelsNominative: Record<string, string> = { full_name: 'Имя', avatar: 'Фото', group_name: 'Группа' };
+const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar: 'фото', group_name: 'группу' };
+    
+    const fieldName = fieldLabels[field];
+    const fieldNameNom = fieldLabelsNominative[field];
+    const fieldNameDat = fieldLabelsDative[field];
+    
+    // 🔥 Создаём уведомление
+    const notificationData = {
+      user_id: userId,
+      type: approved 
+  ? `moderation_${field === 'full_name' ? 'name' : field}` 
+  : `moderation_${field === 'full_name' ? 'name' : field}_rejected`,
+      title: approved ? `${fieldNameNom} одобрено` : `${fieldNameNom} отклонено`,
+      message: approved 
+        ? `Ваше ${fieldName} успешно подтверждено.`
+        : `${fieldNameNom} отклонено администратором. Причина: ${note}. Вы можете изменить ${fieldNameDat} до конца регистрации.`,
+      created_at: new Date().toISOString(),
+      is_read: false,
+    };
+    
+    console.log('📩 Создаём уведомление:', notificationData);
+    
+    const { data: notifData, error: notifError } = await supabase
+      .from('notifications')
+      .insert(notificationData)
+      .select();  // 🔥 Добавляем .select() чтобы увидеть созданную запись
+    
+    if (notifError) {
+      console.error('❌ Ошибка создания уведомления:', notifError);
+      setError(`Не удалось создать уведомление: ${notifError.message}`);
+    } else {
+      console.log('✅ Уведомление создано:', notifData);
+    }
+
+    setSuccess(`✅ ${fieldName} ${approved ? 'одобрено' : 'отклонено'}`);
+    setTimeout(() => setSuccess(null), 2000);
+    
+    // 🔥 Обновляем список pending-профилей
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('*')
+      .or('full_name_status.eq.pending,full_name_status.eq.rejected,avatar_status.eq.pending,avatar_status.eq.rejected,group_name_status.eq.pending,group_name_status.eq.rejected');
+    
+    const profilesWithPending = profiles?.filter(p => 
+      p.full_name_status === 'pending' || 
+      p.avatar_status === 'pending' || 
+      p.group_name_status === 'pending'
+    ) || [];
+    setProfilesPending(profilesWithPending);
+    
+  } catch (err: any) {
+    console.error('❌ Ошибка модерации:', err);
+    setError(err.message || 'Ошибка при модерации');
+  }
+};
 
   // 🔹 Обработка "Подтвердить всё" для профиля
   const handleApproveAll = async (userId: string) => {
@@ -104,13 +132,19 @@ export function ProfilesTab({ profilesPending, setProfilesPending, setError, set
       
       if (error) throw error;
       
-      await supabase.from('notifications').insert({
-        user_id: userId,
-        type: 'moderation_all_approved',
-        title: 'Все данные подтверждены',
-        message: 'Администратор подтвердил все ваши данные. Теперь они видны другим участникам.',
-        created_at: new Date().toISOString()
-      });
+      // 🔥 Уведомление о подтверждении всех данных
+      try {
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          type: 'moderation_all_approved',
+          title: 'Все данные подтверждены',
+          message: 'Администратор подтвердил все ваши данные. Теперь они видны другим участникам.',
+          created_at: new Date().toISOString(),
+          is_read: false,
+        });
+      } catch (err) {
+        console.warn('⚠️ Не удалось создать уведомление:', err);
+      }
       
       setSuccess('✅ Все данные пользователя подтверждены');
       setTimeout(() => setSuccess(null), 2000);
@@ -128,11 +162,11 @@ export function ProfilesTab({ profilesPending, setProfilesPending, setError, set
       setProfilesPending(profilesWithPending);
       
     } catch (err: any) {
+      console.error('❌ Ошибка подтверждения всех данных:', err);
       setError(err.message);
     }
   };
 
-  // 🔹 Рендер таблицы профилей
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {profilesPending.map(profile => (
@@ -215,35 +249,36 @@ export function ProfilesTab({ profilesPending, setProfilesPending, setError, set
           </Box>
         </Paper>
       ))}
+      
       {/* 🔹 Диалог отклонения для профилей */}
-<Dialog 
-  open={noteDialog.open && noteDialog.field !== 'all'} 
-  onClose={() => setNoteDialog({ ...noteDialog, open: false })} 
-  maxWidth="sm" 
-  fullWidth
->
-  <DialogTitle>❌ Отклонить {noteDialog.field === 'full_name' ? 'имя' : noteDialog.field === 'avatar' ? 'фото' : 'группу'}</DialogTitle>
-  <DialogContent>
-    <TextField 
-      autoFocus fullWidth label="Причина отклонения *" value={note} 
-      onChange={(e) => setNote(e.target.value)} margin="dense" multiline rows={4}
-      required error={!note} helperText={!note ? 'Укажите причину' : 'Комментарий отправится пользователю'}
-    />
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => { setNoteDialog({ ...noteDialog, open: false }); setNote(''); }}>Отмена</Button>
-    <Button 
-      onClick={async () => {
-        if (!note.trim()) { setError('Укажите причину'); return; }
-        await handleFieldModeration(noteDialog.id, noteDialog.field, false);
-        setNoteDialog({ ...noteDialog, open: false }); setNote('');
-      }} 
-      variant="contained" color="error" disabled={!note.trim()}
-    >
-      Отклонить
-    </Button>
-  </DialogActions>
-</Dialog>
+      <Dialog 
+        open={noteDialog.open && noteDialog.field !== 'all'} 
+        onClose={() => setNoteDialog({ ...noteDialog, open: false })} 
+        maxWidth="sm" 
+        fullWidth
+      >
+        <DialogTitle>❌ Отклонить {noteDialog.field === 'full_name' ? 'имя' : noteDialog.field === 'avatar' ? 'фото' : 'группу'}</DialogTitle>
+        <DialogContent>
+          <TextField 
+            autoFocus fullWidth label="Причина отклонения *" value={note} 
+            onChange={(e) => setNote(e.target.value)} margin="dense" multiline rows={4}
+            required error={!note} helperText={!note ? 'Укажите причину' : 'Комментарий отправится пользователю'}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => { setNoteDialog({ ...noteDialog, open: false }); setNote(''); }}>Отмена</Button>
+          <Button 
+            onClick={async () => {
+              if (!note.trim()) { setError('Укажите причину'); return; }
+              await handleFieldModeration(noteDialog.id, noteDialog.field, false);
+              setNoteDialog({ ...noteDialog, open: false }); setNote('');
+            }} 
+            variant="contained" color="error" disabled={!note.trim()}
+          >
+            Отклонить
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

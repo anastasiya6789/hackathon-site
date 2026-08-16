@@ -12,14 +12,32 @@ export function ConfirmEmailPage() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // 🔥 Supabase автоматически обрабатывает token из URL
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) throw sessionError;
-        
+        // 1. Пытаемся получить сессию стандартным способом
+        let { data: { session } } = await supabase.auth.getSession();
+
+        // 2. Если сессии нет, пробуем вручную достать токен из URL
+        if (!session) {
+          const url = new URL(window.location.href);
+          
+          // Ищем токен в query-параметрах (?access_token=...)
+          const token = url.searchParams.get('access_token');
+          const refreshToken = url.searchParams.get('refresh_token');
+
+          if (token) {
+            const { data: newSession, error: exchangeError } = await supabase.auth.setSession({
+              access_token: decodeURIComponent(token),
+              refresh_token: refreshToken ? decodeURIComponent(refreshToken) : '',
+            });
+            
+            if (exchangeError) throw exchangeError;
+            session = newSession;
+          }
+        }
+
+        // 3. Проверяем, подтверждён ли email
         if (session?.user?.email_confirmed_at) {
           setStatus('success');
-          setMessage('✅ Email подтверждён! Теперь вы можете войти.');
+          setMessage('✅ Email подтверждён! Теперь вы можете войти в аккаунт.');
         } else {
           setStatus('error');
           setMessage('❌ Ссылка недействительна или истекла');
@@ -57,12 +75,12 @@ export function ConfirmEmailPage() {
                 {message}
               </Typography>
               <Button 
-                variant="contained" 
-                onClick={() => navigate('/login')}
-                sx={{ bgcolor: '#9500d3', '&:hover': { bgcolor: '#6A0096' } }}
-              >
-                Войти в аккаунт
-              </Button>
+  variant="contained" 
+  onClick={() => navigate('/register?mode=login')}
+  sx={{ bgcolor: '#9500d3', '&:hover': { bgcolor: '#6A0096' } }}
+>
+  Войти в аккаунт
+</Button>
             </>
           )}
           

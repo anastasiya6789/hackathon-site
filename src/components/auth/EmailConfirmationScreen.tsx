@@ -13,11 +13,13 @@ export function EmailConfirmationScreen({ email, onResend }: EmailConfirmationSc
   
   const handleResend = async () => {
     try {
+      // 🔥 ВОЗВРАЩАЕМ ПРАВИЛЬНЫЙ REDIRECT: с хешем для HashRouter
+const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-email`;      
       const { error } = await supabase.auth.resend({
         type: 'signup',
         email: email.toLowerCase().trim(),
         options: {
-          redirectTo: `${window.location.origin}/confirm-email`,
+          redirectTo: redirectUrl,
         },
       });
       

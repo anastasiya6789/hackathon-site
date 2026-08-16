@@ -19,37 +19,60 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkAuthAndBan = async () => {
-      try {
-        // Проверка авторизации
-        const currentUser = JSON.parse(localStorage.getItem('hackathon_current_user') || 'null');
-        if (!currentUser) {
-          navigate('/register');
-          return;
+  const checkAuthAndBan = async () => {
+    try {
+      // 1. Сначала проверяем localStorage
+      let currentUser = JSON.parse(localStorage.getItem('hackathon_current_user') || 'null');
+      
+      // 2. Если в localStorage пусто — проверяем сессию Supabase (для случая с подтверждением email)
+      if (!currentUser) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          currentUser = {
+            id: session.user.id,
+            email: session.user.email || '',
+            fullName: session.user.user_metadata?.full_name || '',
+            groupName: session.user.user_metadata?.group_name || '',
+            phone: session.user.user_metadata?.phone || '',
+            telegramLink: session.user.user_metadata?.telegram_link,
+            uniqueCode: session.user.user_metadata?.unique_code || '',
+            role: 'user',
+            avatarUrl: session.user.user_metadata?.avatar_url,
+            createdAt: session.user.created_at,
+          };
+          // Сохраняем в localStorage для будущих запросов
+          localStorage.setItem('hackathon_current_user', JSON.stringify(currentUser));
         }
-        
-        // Проверка на бан в базе
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('banned')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-        
-        if (profile?.banned) {
-          setBanned(true);
-        } else {
-          setUser(currentUser);
-          setCurrentTab(tab);
-        }
-      } catch (err) {
-        console.error('Ошибка проверки:', err);
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    checkAuthAndBan();
-  }, [tab, navigate]);
+      
+      if (!currentUser) {
+        navigate('/register');
+        return;
+      }
+      
+      // Проверка на бан в базе
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('banned')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+      
+      if (profile?.banned) {
+        setBanned(true);
+      } else {
+        setUser(currentUser);
+        setCurrentTab(tab);
+      }
+    } catch (err) {
+      console.error('Ошибка проверки:', err);
+      navigate('/register');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  checkAuthAndBan();
+}, [tab, navigate]);
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: string) => {
     setCurrentTab(newValue as 'profile' | 'team' | 'cases');

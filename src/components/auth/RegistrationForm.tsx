@@ -15,6 +15,7 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { validateRussianPhone, formatPhoneInput } from '../../services/validation';
 import { validatePassword } from '../../services/password';
 import type { User } from '../../types';
+import { useNavigate } from 'react-router-dom';
 
 export interface RegistrationData {
   fullName: string;
@@ -40,6 +41,7 @@ export function RegistrationForm({
   onModeChange,
   disabled = false
 }: RegistrationFormProps) {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<RegistrationData>({
     fullName: '',
     groupName: '',
@@ -162,7 +164,6 @@ export function RegistrationForm({
         onSuccess(result);
       }
     } catch (err: any) {
-      // 🔥 Показываем понятное сообщение об ошибке
       const message = err?.message || 'Произошла ошибка';
       setSubmitError(message);
     } finally {
@@ -362,6 +363,20 @@ export function RegistrationForm({
         {loading ? <CircularProgress size={24} color="inherit" /> : (mode === 'register' ? 'Зарегистрироваться' : 'Войти')}
       </Button>
       
+      {/* 🔥 Кнопка "Забыли пароль?" — только в режиме входа */}
+      {mode === 'login' && (
+        <Box sx={{ mt: 1.5, textAlign: 'center' }}>
+          <Button 
+            size="small" 
+            color="primary" 
+            onClick={() => navigate('/forgot-password')}
+            sx={{ textTransform: 'none', fontSize: '0.85rem', p: 0 }}
+          >
+            Забыли пароль?
+          </Button>
+        </Box>
+      )}
+      
       {mode === 'register' && (
         <Typography variant="caption" color="text.secondary" display="block" mt={2} sx={{ textAlign: 'center' }}>
           Нажимая кнопку, вы соглашаетесь с обработкой персональных данных
@@ -369,4 +384,4 @@ export function RegistrationForm({
       )}
     </Box>
   );
-} 
+}

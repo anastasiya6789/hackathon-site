@@ -4,6 +4,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { AdminPage } from './pages/AdminPage';
 import { Layout } from './components/layout/Layout';
 import { ConfirmEmailPage } from './pages/ConfirmEmailPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 function App() {
   return (
@@ -21,6 +23,8 @@ function App() {
         <Route path="/dashboard/team" element={<DashboardPage tab="team" />} />
         <Route path="/dashboard/cases" element={<DashboardPage tab="cases" />} />
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+<Route path="/reset-password" element={<ResetPasswordPage />} />
         
         {/* Админка (позже) */}
         <Route path="/admin" element={<AdminPage />} />

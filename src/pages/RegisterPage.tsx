@@ -1,4 +1,4 @@
- import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Card, CardContent, Typography, Alert, CircularProgress } from '@mui/material';
 import { RegistrationForm, type RegistrationData } from '../components/auth/RegistrationForm';
 import { EmailConfirmationScreen } from '../components/auth/EmailConfirmationScreen';
@@ -12,7 +12,10 @@ import { supabase } from '../services/supabase';
 type Mode = 'register' | 'login';
 
 export function RegisterPage() {
-  const [mode, setMode] = useState<Mode>('register');
+    const urlParams = new URLSearchParams(window.location.search);
+  const initialMode = urlParams.get('mode') === 'login' ? 'login' : 'register';
+  
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [registeredUser, setRegisteredUser] = useState<User | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
@@ -21,12 +24,9 @@ export function RegisterPage() {
   const [registeredEmail, setRegisteredEmail] = useState('');
   const navigate = useNavigate();
 
-  // 🔹 Проверяем настройки регистрации при загрузке
   useEffect(() => {
     const checkRegistrationPeriod = async () => {
       try {
-        console.log(' Загрузка конфига регистрации...');
-        
         const { data: config, error } = await supabase
           .from('hackathon_config')
           .select('registration_start, registration_end')
@@ -38,27 +38,18 @@ export function RegisterPage() {
           return;
         }
         
-        console.log('✅ Загруженный конфиг:', config);
-        
         if (config) {
           const now = new Date();
           const start = config.registration_start ? new Date(config.registration_start) : null;
           const end = config.registration_end ? new Date(config.registration_end) : null;
           
-          console.log('🕐 Текущее время:', now);
-          console.log('📅 Начало регистрации:', start);
-          console.log('📅 Конец регистрации:', end);
-          
           if (start && end) {
             const isWithinRange = now >= start && now <= end;
-            console.log('✅ В диапазоне?', isWithinRange);
             setRegistrationBlocked(!isWithinRange);
           } else {
-            console.log('⚠️ Даты не заданы — регистрация открыта');
             setRegistrationBlocked(false);
           }
         } else {
-          console.log('⚠️ Конфиг пуст — регистрация открыта');
           setRegistrationBlocked(false);
         }
       } catch (err) {
@@ -75,19 +66,12 @@ export function RegisterPage() {
   const handleRegister = async (data: RegistrationData): Promise<User | null> => {
     setSubmitError(null);
     
-    // 🔹 Проверка: если регистрация заблокирована
-    console.log('🔒 registrationBlocked:', registrationBlocked);
     if (mode === 'register' && registrationBlocked) {
-      console.log('❌ Регистрация заблокирована!');
       throw new Error('Регистрация недоступна. Ждём вас на следующем хакатоне!');
     }
     
-    console.log('✅ Регистрация разрешена');
-    
     try {
       if (mode === 'register') {
-        // === РЕГИСТРАЦИЯ ===
-        
         // 🔥 1. Проверяем email в profiles
         const { data: existingEmail } = await supabase
           .from('profiles')
@@ -129,6 +113,8 @@ export function RegisterPage() {
         }
         
         // 4. Регистрируем через Supabase Auth
+        // 🔥 ВОЗВРАЩАЕМ ПРАВИЛЬНЫЙ REDIRECT: с хешем для HashRouter
+const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-email`;        
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: (data.email || '').toLowerCase().trim(),
           password: data.password || '',
@@ -140,6 +126,8 @@ export function RegisterPage() {
               group_name: data.groupName?.trim(),
               telegram_link: data.telegramLink?.trim(),
             },
+            // 🔥 Указываем, куда отправить пользователя после клика по письму
+            emailRedirectTo: redirectUrl,
           },
         });
 
@@ -166,7 +154,6 @@ export function RegisterPage() {
           throw new Error('Ошибка регистрации: пользователь не создан');
         }
 
-        // 🔥 Проверяем, подтверждён ли email
         const isEmailConfirmed = !!authData.user.email_confirmed_at;
 
         return {
@@ -235,25 +222,21 @@ export function RegisterPage() {
     } catch (err: any) {
       console.error('💥 Register error:', err);
       
-      // 🔥 Если это Error с message — просто пробрасываем дальше
       if (err?.message) {
         throw err;
       }
       
-      // 🔥 Если совсем пустая ошибка
       throw new Error('Произошла неизвестная ошибка. Попробуйте позже');
     }
   };
 
   const handleSuccess = (user: User) => {
-    // 🔥 Если email не подтверждён — показываем экран подтверждения
     if (!user.emailConfirmed) {
       setRegisteredEmail(user.email);
       setShowEmailConfirmation(true);
       return;
     }
     
-    // Если подтверждён — стандартный успех
     setRegisteredUser(user);
     localStorage.setItem('hackathon_current_user', JSON.stringify(user));
     setTimeout(() => {
@@ -261,7 +244,6 @@ export function RegisterPage() {
     }, 2000);
   };
 
-  // 🔹 Экран подтверждения email
   if (showEmailConfirmation) {
     return (
       <EmailConfirmationScreen 
@@ -273,7 +255,6 @@ export function RegisterPage() {
     );
   }
 
-  // 🔹 Экран загрузки конфига
   if (configLoading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -282,7 +263,6 @@ export function RegisterPage() {
     );
   }
 
-  // 🔹 Экран успеха
   if (registeredUser) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', p: 2 }}>
@@ -321,7 +301,7 @@ export function RegisterPage() {
           
           {mode === 'register' && registrationBlocked && (
             <Alert severity="warning" sx={{ mb: 3, borderRadius: 2 }}>
-              <Typography fontWeight={600} mb={1}> Регистрация временно недоступна</Typography>
+              <Typography fontWeight={600} mb={1}>⏳ Регистрация временно недоступна</Typography>
               <Typography variant="body2">
                 Ждём вас на следующем хакатоне! Следите за анонсами.
               </Typography>
@@ -339,4 +319,4 @@ export function RegisterPage() {
       </Card>
     </Box>
   );
-} 
+}
