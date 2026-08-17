@@ -244,6 +244,7 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         </Paper>
       </Box>
 
+       {/* 🔹 Список команд */}
       <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
         <Table>
           <TableHead>
@@ -256,15 +257,7 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
           </TableHead>
           <TableBody>
             {teams.map(team => {
-              return (
-                <TableRow key={team.id} hover onClick={() => handleOpenTeam(team)} sx={{ cursor: 'pointer' }}>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Group fontSize="small" color="action" />
-                      <Typography fontWeight={500}>{team.name}</Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>{team.team_members?.length || 0}</TableCell>
+              
               
               return (
                 <TableRow key={team.id} hover onClick={() => handleOpenTeam(team)} sx={{ cursor: 'pointer' }}>
