@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Box, AppBar, Toolbar, Typography, IconButton, Avatar, Badge, Menu, List, ListItem, ListItemText, Divider, Button } from '@mui/material';
-import { Logout, Notifications, CheckCircle } from '@mui/icons-material';
+import { Logout, Notifications, CheckCircle, Gavel, ContactSupport } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BottomNav } from './BottomNav';
 import { ITTopLogo } from '../ui/ITTopLogo';
@@ -40,10 +40,7 @@ export function Layout({ children }: LayoutProps) {
         .order('created_at', { ascending: false })
         .limit(20);
       
-      if (error) {
-        return;
-      }
-      
+      if (error) return;
       if (data) {
         setNotifications(data);
         setUnreadCount(data.filter(n => !n.is_read).length);
@@ -64,9 +61,7 @@ export function Layout({ children }: LayoutProps) {
       )
       .subscribe();
     
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, [currentUser?.id, isAuthPage]);
 
   const handleMarkRead = async (id: string) => {
@@ -86,26 +81,44 @@ export function Layout({ children }: LayoutProps) {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return '';
       return date.toLocaleString('ru-RU', { 
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
+        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
       });
-    } catch {
-      return '';
-    }
+    } catch { return ''; }
   };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <AppBar position="sticky" elevation={1} sx={{ background: 'linear-gradient(135deg, #9500d3, #6A0096)', display: { xs: 'none', md: 'flex' } }}>
+      {/*  ДЕСКТОПНАЯ ВЕРСИЯ — static чтобы уезжала при скролле */}
+      <AppBar position="static" elevation={1} sx={{ background: 'linear-gradient(135deg, #9500d3, #6A0096)', display: { xs: 'none', md: 'flex' } }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
+          
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <ITTopLogo size="small" variant="white" showCollege={true} />
             <Typography variant="h6" fontWeight={700} color="white">Hackathon</Typography>
           </Box>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            
+            <IconButton 
+              color="inherit" 
+              onClick={() => navigate('/rules')} 
+              size="medium"
+              title="Правила сайта"
+              sx={{ minWidth: 40, height: 40 }}
+            >
+              <Gavel fontSize="medium" />
+            </IconButton>
+            
+            <IconButton 
+              color="inherit" 
+              onClick={() => navigate('/contacts')} 
+              size="medium"
+              title="Контакты"
+              sx={{ minWidth: 40, height: 40 }}
+            >
+              <ContactSupport fontSize="medium" />
+            </IconButton>
+            
             {!isAuthPage && currentUser && (
               <>
                 <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ mr: 1 }}>
@@ -126,10 +139,45 @@ export function Layout({ children }: LayoutProps) {
             )}
             
             {!currentUser && (
-              <IconButton color="inherit" onClick={() => navigate('/register')}>
-                <Logout />
+              <IconButton color="inherit" onClick={() => navigate('/register')} size="medium" sx={{ minWidth: 40, height: 40 }}>
+                <Logout fontSize="medium" />
               </IconButton>
             )}
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* 🔹 МОБИЛЬНАЯ ВЕРСИЯ — static чтобы уезжала при скролле */}
+      <AppBar position="static" elevation={1} sx={{ display: { xs: 'flex', md: 'none' }, background: 'linear-gradient(135deg, #9500d3, #6A0096)' }}>
+        <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ITTopLogo size="small" variant="white" showCollege={false} />
+            <Typography variant="h6" fontWeight={700} color="white" fontSize="1rem">Hackathon</Typography>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <IconButton color="inherit" onClick={() => navigate('/rules')} size="small">
+              <Gavel fontSize="small" />
+            </IconButton>
+            <IconButton color="inherit" onClick={() => navigate('/contacts')} size="small">
+              <ContactSupport fontSize="small" />
+            </IconButton>
+            
+            {!isAuthPage && currentUser && (
+              <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
+                <Badge badgeContent={unreadCount} color="error">
+                  <Notifications fontSize="small" />
+                </Badge>
+              </IconButton>
+            )}
+            
+            <IconButton 
+              color="inherit" 
+              onClick={currentUser ? handleLogout : () => navigate('/register')} 
+              size="small"
+            >
+              {currentUser ? <Logout fontSize="small" /> : <Logout fontSize="small" />}
+            </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
@@ -137,32 +185,24 @@ export function Layout({ children }: LayoutProps) {
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} sx={{ mt: 1 }}>
         <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="subtitle2" fontWeight={600}>Уведомления</Typography>
-          {unreadCount > 0 && (
-            <Button size="small" onClick={handleMarkAllRead}>Прочитать все</Button>
-          )}
+          {unreadCount > 0 && <Button size="small" onClick={handleMarkAllRead}>Прочитать все</Button>}
         </Box>
         <Divider />
         <List sx={{ width: 320, maxHeight: 400, overflow: 'auto' }}>
           {notifications.length === 0 ? (
-            <ListItem>
-              <ListItemText primary="Нет уведомлений" secondary="Мы сообщим о важных событиях" sx={{ textAlign: 'center', py: 2 }} />
-            </ListItem>
+            <ListItem><ListItemText primary="Нет уведомлений" secondary="Мы сообщим о важных событиях" sx={{ textAlign: 'center', py: 2 }} /></ListItem>
           ) : (
             notifications.map(n => (
               <ListItem key={n.id} alignItems="flex-start" sx={{ borderBottom: '1px solid #eee', py: 1 }}>
                 <Box sx={{ display: 'flex', gap: 1, width: '100%' }}>
-                  <Box sx={{ mt: 0.5 }}>
-                    <CheckCircle fontSize="small" color={n.isRead ? 'disabled' : 'primary'} />
-                  </Box>
+                  <Box sx={{ mt: 0.5 }}><CheckCircle fontSize="small" color={n.isRead ? 'disabled' : 'primary'} /></Box>
                   <ListItemText 
                     primary={n.title} 
                     secondary={
                       <>
                         <Typography component="span" variant="body2">{n.message}</Typography>
                         <br />
-                        <Typography component="span" variant="caption" color="text.secondary">
-                          {formatDate(n.createdAt)}
-                        </Typography>
+                        <Typography component="span" variant="caption" color="text.secondary">{formatDate(n.createdAt)}</Typography>
                       </>
                     }
                     onClick={() => !n.isRead && handleMarkRead(n.id)}
@@ -175,9 +215,11 @@ export function Layout({ children }: LayoutProps) {
         </List>
       </Menu>
 
+      {/* 🔹 Контент — без отступа сверху, чтобы шапка была частью потока */}
       <Box component="main" sx={{ flex: 1, pb: { xs: 72, md: 0 } }}>
         {children}
       </Box>
+      
       {isDashboard && <BottomNav />}
     </Box>
   );

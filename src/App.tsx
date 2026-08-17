@@ -6,6 +6,8 @@ import { Layout } from './components/layout/Layout';
 import { ConfirmEmailPage } from './pages/ConfirmEmailPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { RulesPage } from './pages/RulesPage';
+import { ContactsPage } from './pages/ContactsPage';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/confirm-email" element={<ConfirmEmailPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 <Route path="/reset-password" element={<ResetPasswordPage />} />
+<Route path="/rules" element={<RulesPage />} />
+<Route path="/contacts" element={<ContactsPage />} />
         
         <Route path="/admin" element={<AdminPage />} />
         
