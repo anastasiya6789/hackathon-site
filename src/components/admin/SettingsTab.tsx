@@ -26,15 +26,10 @@ export function SettingsTab({
   setError, setSuccess
 }: SettingsTabProps) {
 
-  // 🔹 Сохранение настроек хакатона
   const handleSaveConfig = async () => {
     setConfigLoading(true);
     try {
-      console.log('💾 Сохраняем настройки:', {
-        registration_start: registrationStart || null,
-        registration_end: registrationEnd || null,
-        case_selection_start: caseSelectionStart || null
-      });
+      
       
       let { error } = await supabase.from('hackathon_config').update({
         registration_start: registrationStart || null,
@@ -63,7 +58,6 @@ export function SettingsTab({
         setCaseSelectionStart(data.case_selection_start?.slice(0, 16) || '');
       }
     } catch (err: any) {
-      console.error('❌ Ошибка:', err);
       setError(err.message);
     } finally {
       setConfigLoading(false);
@@ -79,7 +73,6 @@ export function SettingsTab({
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, maxWidth: 600 }}>
           
-          {/* 🔸 Блок 1: Регистрация */}
           <Box sx={{ 
             p: 3, 
             borderRadius: 2, 
@@ -114,7 +107,6 @@ export function SettingsTab({
             </Typography>
           </Box>
           
-          {/* 🔸 Блок 2: Старт выбора кейсов */}
           <Box sx={{ 
             p: 3, 
             borderRadius: 2, 

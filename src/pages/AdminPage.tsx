@@ -75,7 +75,6 @@ export function AdminPage() {
           setCaseSelectionStart(data.case_selection_start?.slice(0, 16) || '');
         }
       } catch (err) {
-        console.error('Ошибка:', err);
       } finally {
         setConfigLoading(false);
       }
@@ -157,12 +156,10 @@ export function AdminPage() {
         />
       )}
 
-      {/* 🔹 Вкладка: Статистика */}
 {tab === 4 && (
   <StatisticsTab setError={setError} setSuccess={setSuccess} />
 )}
 
-{/* 🔹 Вкладка: Управление командами */}
 {tab === 5 && (
   <TeamsManagementTab 
     setError={setError} 

@@ -17,7 +17,6 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Проверяем, что пользователь пришёл по ссылке восстановления
     const hash = window.location.hash;
     if (!hash.includes('access_token') && !hash.includes('type=recovery')) {
       setError('Ссылка недействительна или истекла');
@@ -33,7 +32,6 @@ export function ResetPasswordPage() {
 
     setLoading(true);
     try {
-      // Supabase автоматически использует токен из URL для смены пароля
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
       setSuccess(true);

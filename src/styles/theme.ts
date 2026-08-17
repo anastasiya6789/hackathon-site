@@ -1,15 +1,14 @@
 import { createTheme, type Shadows } from '@mui/material/styles';
 
-// 🎨 Палитра IT-TOP College (#9500d3) + Material 3 Expressive
 const itTopPalette = {
   primary: {
-    main: '#9500d3',        // 🔥 Главный фиолетовый IT-TOP
-    dark: '#6A0096',        // Тёмный для градиента
-    light: '#B340D9',       // Светлый для акцентов
+    main: '#9500d3',        
+    dark: '#6A0096',        
+    light: '#B340D9',       
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#FF6B35',        // Оранжевый акцент (оставляем)
+    main: '#FF6B35',        
     dark: '#E55A2B',
     light: '#FF8557',
     contrastText: '#FFFFFF',
@@ -27,7 +26,7 @@ const itTopPalette = {
   error: { main: '#E74C3C', light: '#EC7063', dark: '#C0392B' },
 };
 
-// ✅ Правильный массив теней (ровно 25 элементов)
+
 const customShadows: Shadows = [
   'none',
   '0 1px 2px rgba(0,0,0,0.06)',
@@ -71,7 +70,7 @@ export const theme = createTheme({
     button: { fontWeight: 600, textTransform: 'none' },
   },
   shape: {
-    borderRadius: 12, // Material 3 Expressive
+    borderRadius: 12, 
   },
   shadows: customShadows,
   components: {
@@ -84,11 +83,11 @@ export const theme = createTheme({
             fontWeight: 600,
             boxShadow: 'none',
             '&:hover': { 
-              boxShadow: '0 4px 12px rgba(149, 0, 211, 0.3)', // 🔥 Фиолетовая тень
+              boxShadow: '0 4px 12px rgba(149, 0, 211, 0.3)', 
               transform: 'translateY(-1px)',
             },
             '&:active': { transform: 'translateY(0)' },
-            // ✅ Градиент для contained + primary
+            
             ...(ownerState?.variant === 'contained' && ownerState?.color === 'primary' && {
               background: `linear-gradient(135deg, ${itTopPalette.primary.main}, ${itTopPalette.primary.dark})`,
               '&:hover': {

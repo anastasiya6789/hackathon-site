@@ -25,65 +25,48 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
   const [editTeamName, setEditTeamName] = useState('');
   const [assignedCase, setAssignedCase] = useState<string>('');
 
-  // 🔹 Загрузка всех данных
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        console.log(' Начинаем загрузку данных...');
         
-        // 1. Загружаем команды
         const { data: teamsData, error: teamsError } = await supabase
           .from('teams')
           .select('*')
           .order('created_at', { ascending: false });
         
-        console.log('📦 Команды:', teamsData);
         if (teamsError) {
-          console.error('❌ Ошибка загрузки команд:', teamsError);
           throw teamsError;
         }
         
-        // 2. Загружаем назначения кейсов
         const { data: assignmentsData, error: assignmentsError } = await supabase
           .from('team_case_assignments')
           .select('team_id, case_id');
         
-        console.log(' Назначения кейсов:', assignmentsData);
         if (assignmentsError) {
-          console.error('❌ Ошибка загрузки назначений:', assignmentsError);
         }
         
-        // 3. Загружаем все кейсы
         const { data: casesData, error: casesError } = await supabase
           .from('cases')
           .select('id, title')
           .not('published_at', 'is', null);
         
-        console.log('📦 Кейсы:', casesData);
         if (casesError) {
-          console.error(' Ошибка загрузки кейсов:', casesError);
         }
         
-        // 4. Загружаем участников команд
         const { data: membersData, error: membersError } = await supabase
           .from('team_members')
           .select('team_id, user_id, profiles(full_name, email, group_name, avatar_url, phone, telegram_link)');
         
-        console.log('📦 Участники команд:', membersData);
         if (membersError) {
-          console.error('❌ Ошибка загрузки участников:', membersError);
         }
         
-        // 5. Собираем всё вместе
         const teamsWithDetails = teamsData?.map(team => {
-          // Находим назначение кейса для этой команды
           const assignment = assignmentsData?.find(a => a.team_id === team.id);
           const assignedCase = assignment 
             ? casesData?.find(c => c.id === assignment.case_id)
             : null;
           
-          // Находим участников этой команды
           const members = membersData?.filter(m => m.team_id === team.id) || [];
           
           return {
@@ -93,9 +76,7 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
           };
         }) || [];
         
-        console.log('✅ Итоговые команды с данными:', teamsWithDetails);
         
-        // 6. Загружаем пользователей для поиска
         const { data: usersData } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone, telegram_link, group_name, avatar_url')
@@ -106,7 +87,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         setCases(casesData || []);
         
       } catch (err: any) {
-        console.error(' Общая ошибка:', err);
         setError('Не удалось загрузить данные');
       } finally {
         setLoading(false);
@@ -115,7 +95,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
     fetchData();
   }, [setError]);
 
-  // 🔹 Фильтрация пользователей для поиска
   const filteredUsers = users.filter(u => {
     const q = memberSearch.toLowerCase();
     return (
@@ -126,16 +105,13 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
     );
   });
 
-  // 🔹 Открытие диалога команды
   const handleOpenTeam = (team: any) => {
-    console.log('🔓 Открытие команды:', team);
     setSelectedTeam(team);
     setEditTeamName(team.name);
     setAssignedCase(team.assigned_case?.id || '');
     setTeamDialogOpen(true);
   };
 
-  //  Сохранение названия команды
   const handleSaveTeamName = async () => {
     if (!selectedTeam || !editTeamName.trim()) return;
     try {
@@ -151,27 +127,19 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
     }
   };
 
-  // 🔹 Назначение кейса (через team_case_assignments)
   const handleAssignCase = async () => {
     if (!selectedTeam) return;
     try {
-      console.log('📝 Назначение кейса:', { 
-        teamId: selectedTeam.id, 
-        caseId: assignedCase 
-      });
       
-      // 1. Удаляем старое назначение
       const { error: deleteError } = await supabase
         .from('team_case_assignments')
         .delete()
         .eq('team_id', selectedTeam.id);
       
       if (deleteError) {
-        console.error('❌ Ошибка удаления старого назначения:', deleteError);
         throw deleteError;
       }
       
-      // 2. Если выбран кейс — создаем новую запись
       if (assignedCase) {
         const { error: insertError } = await supabase
           .from('team_case_assignments')
@@ -181,14 +149,12 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
           });
         
         if (insertError) {
-          console.error('❌ Ошибка создания назначения:', insertError);
           throw insertError;
         }
       }
       
       setSuccess('✅ Кейс назначен');
       
-      // 🔥 Обновляем локальный стейт
       const assignedCaseData = cases.find(c => c.id === assignedCase);
       setTeams(prev => prev.map(t => {
         if (t.id === selectedTeam.id) {
@@ -201,12 +167,10 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
       }));
       
     } catch (err: any) {
-      console.error('❌ Ошибка назначения кейса:', err);
       setError(err.message);
     }
   };
 
-  // 🔹 Добавить участника
   const handleAddMember = async (userId: string) => {
     if (!selectedTeam) return;
     try {
@@ -217,14 +181,12 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
       setSuccess('✅ Участник добавлен');
       setAddMemberDialog(false);
       setMemberSearch('');
-      // Перезагружаем страницу для обновления данных
       window.location.reload();
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  // 🔹 Удалить участника
   const handleRemoveMember = async (userId: string) => {
     if (!selectedTeam) return;
     try {
@@ -235,14 +197,12 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         .eq('user_id', userId);
       if (error) throw error;
       setSuccess('✅ Участник удалён');
-      // Перезагружаем страницу для обновления данных
       window.location.reload();
     } catch (err: any) {
       setError(err.message);
     }
   };
 
-  // 🔹 Удалить команду
   const handleDeleteTeam = async (teamId: string) => {
     if (!confirm('Удалить команду? Все участники останутся без команды.')) return;
     try {
@@ -256,7 +216,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
     }
   };
 
-  // 🔹 Забанить команду (всех участников)
   const handleBanTeam = async (teamId: string) => {
     if (!confirm('Забанить всех участников команды?')) return;
     try {
@@ -278,7 +237,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* 🔹 Статистика */}
       <Box sx={{ display: 'flex', gap: 2 }}>
         <Paper sx={{ p: 2, borderRadius: 2, minWidth: 150, bgcolor: '#E3F2FD', textAlign: 'center' }}>
           <Typography variant="h4" fontWeight={700}>{teams.length}</Typography>
@@ -286,7 +244,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         </Paper>
       </Box>
 
-      {/* 🔹 Список команд */}
       <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
         <Table>
           <TableHead>
@@ -299,12 +256,15 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
           </TableHead>
           <TableBody>
             {teams.map(team => {
-              console.log('🔍 Рендер команды:', {
-                id: team.id,
-                name: team.name,
-                assigned_case: team.assigned_case,
-                members_count: team.team_members?.length
-              });
+              return (
+                <TableRow key={team.id} hover onClick={() => handleOpenTeam(team)} sx={{ cursor: 'pointer' }}>
+                  <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Group fontSize="small" color="action" />
+                      <Typography fontWeight={500}>{team.name}</Typography>
+                    </Box>
+                  </TableCell>
+                  <TableCell>{team.team_members?.length || 0}</TableCell>
               
               return (
                 <TableRow key={team.id} hover onClick={() => handleOpenTeam(team)} sx={{ cursor: 'pointer' }}>
@@ -333,7 +293,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         </Table>
       </TableContainer>
 
-      {/* 🔹 Диалог управления командой */}
       <Dialog open={teamDialogOpen} onClose={() => setTeamDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -351,7 +310,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         <DialogContent>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
             
-            {/* 🔸 Название команды */}
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <TextField 
                 label="Название команды" 
@@ -364,7 +322,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
               </Button>
             </Box>
 
-            {/* 🔸 Назначение кейса */}
             <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
               <FormControl size="small" sx={{ minWidth: 200 }}>
                 <InputLabel>Кейс</InputLabel>
@@ -384,7 +341,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
               </Button>
             </Box>
 
-            {/*  Участники */}
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                 <Typography fontWeight={600}>Участники ({selectedTeam?.team_members?.length || 0})</Typography>
@@ -420,7 +376,6 @@ export function TeamsManagementTab({ setError, setSuccess }: TeamsManagementTabP
         </DialogActions>
       </Dialog>
 
-      {/* 🔹 Диалог добавления участника */}
       <Dialog open={addMemberDialog} onClose={() => setAddMemberDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>🔍 Добавить участника</DialogTitle>
         <DialogContent>

@@ -22,10 +22,8 @@ export function ProfilesTab({ profilesPending, setProfilesPending, setError, set
     field: 'full_name' | 'avatar' | 'group_name' | 'all';
   }>({ open: false, type: 'approve', id: '', field: 'all' });
 
-  // 🔹 Обработка модерации одного поля
-  // 🔹 Обработка модерации одного поля
+
 const handleFieldModeration = async (userId: string, field: 'full_name' | 'avatar' | 'group_name', approved: boolean, customValue?: string) => {
-  console.log(`🔍 Начата модерация: field=${field}, approved=${approved}, userId=${userId}`);
   
   try {
     const updates: any = {};
@@ -50,18 +48,13 @@ const handleFieldModeration = async (userId: string, field: 'full_name' | 'avata
     
     if (note) updates[`${field}_note`] = note;
 
-    // 🔥 Обновляем профиль
-    console.log(`📝 Обновляем профиль ${userId}:`, updates);
     const { data: profileData, error: dbError } = await supabase.from('profiles').update(updates).eq('id', userId);
     
     if (dbError) {
-      console.error('❌ Ошибка обновления профиля:', dbError);
       throw dbError;
     }
     
-    console.log('✅ Профиль обновлён:', profileData);
 
-    // 🔥 Формируем текст уведомления
     const fieldLabels: Record<string, string> = { full_name: 'имя', avatar: 'фото', group_name: 'группа' };
 const fieldLabelsNominative: Record<string, string> = { full_name: 'Имя', avatar: 'Фото', group_name: 'Группа' };
 const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar: 'фото', group_name: 'группу' };
@@ -70,7 +63,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
     const fieldNameNom = fieldLabelsNominative[field];
     const fieldNameDat = fieldLabelsDative[field];
     
-    // 🔥 Создаём уведомление
     const notificationData = {
       user_id: userId,
       type: approved 
@@ -84,24 +76,20 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
       is_read: false,
     };
     
-    console.log('📩 Создаём уведомление:', notificationData);
     
     const { data: notifData, error: notifError } = await supabase
       .from('notifications')
       .insert(notificationData)
-      .select();  // 🔥 Добавляем .select() чтобы увидеть созданную запись
+      .select(); 
     
     if (notifError) {
-      console.error('❌ Ошибка создания уведомления:', notifError);
       setError(`Не удалось создать уведомление: ${notifError.message}`);
     } else {
-      console.log('✅ Уведомление создано:', notifData);
     }
 
     setSuccess(`✅ ${fieldName} ${approved ? 'одобрено' : 'отклонено'}`);
     setTimeout(() => setSuccess(null), 2000);
     
-    // 🔥 Обновляем список pending-профилей
     const { data: profiles } = await supabase
       .from('profiles')
       .select('*')
@@ -115,12 +103,10 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
     setProfilesPending(profilesWithPending);
     
   } catch (err: any) {
-    console.error('❌ Ошибка модерации:', err);
     setError(err.message || 'Ошибка при модерации');
   }
 };
 
-  // 🔹 Обработка "Подтвердить всё" для профиля
   const handleApproveAll = async (userId: string) => {
     try {
       const { error } = await supabase.from('profiles').update({
@@ -132,7 +118,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
       
       if (error) throw error;
       
-      // 🔥 Уведомление о подтверждении всех данных
       try {
         await supabase.from('notifications').insert({
           user_id: userId,
@@ -143,7 +128,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
           is_read: false,
         });
       } catch (err) {
-        console.warn('⚠️ Не удалось создать уведомление:', err);
       }
       
       setSuccess('✅ Все данные пользователя подтверждены');
@@ -162,7 +146,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
       setProfilesPending(profilesWithPending);
       
     } catch (err: any) {
-      console.error('❌ Ошибка подтверждения всех данных:', err);
       setError(err.message);
     }
   };
@@ -173,7 +156,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
         <Paper key={profile.id} sx={{ p: 2, borderRadius: 2, bgcolor: '#fff' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             
-            {/* 🔥 Левая колонка: Аватар + Имя */}
             <Box sx={{ minWidth: 200, display: 'flex', alignItems: 'center', gap: 2 }}>
               <Avatar 
                 src={profile.avatar_url} 
@@ -187,10 +169,8 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
               </Box>
             </Box>
             
-            {/* 🔥 Центральная колонка: Запрошенные данные */}
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1 }}>
               
-              {/* Имя */}
               {profile.full_name_status === 'pending' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#FFF3E0', borderRadius: 1 }}>
                   <Typography variant="caption" fontWeight={600} sx={{ minWidth: 60 }}>Имя:</Typography>
@@ -204,7 +184,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
                 </Box>
               )}
               
-              {/* Группа */}
               {profile.group_name_status === 'pending' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#FFF3E0', borderRadius: 1 }}>
                   <Typography variant="caption" fontWeight={600} sx={{ minWidth: 60 }}>Группа:</Typography>
@@ -218,7 +197,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
                 </Box>
               )}
               
-              {/* Фото */}
               {profile.avatar_status === 'pending' && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 1, bgcolor: '#FFF3E0', borderRadius: 1 }}>
                   <Typography variant="caption" fontWeight={600} sx={{ minWidth: 60 }}>Фото:</Typography>
@@ -233,7 +211,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
               )}
             </Box>
             
-            {/* 🔥 Правая колонка: Кнопка "Всё ок" */}
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
               <IconButton 
                 size="large" 
@@ -250,7 +227,6 @@ const fieldLabelsDative: Record<string, string> = { full_name: 'имя', avatar:
         </Paper>
       ))}
       
-      {/* 🔹 Диалог отклонения для профилей */}
       <Dialog 
         open={noteDialog.open && noteDialog.field !== 'all'} 
         onClose={() => setNoteDialog({ ...noteDialog, open: false })} 

@@ -21,10 +21,8 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
   useEffect(() => {
   const checkAuthAndBan = async () => {
     try {
-      // 1. Сначала проверяем localStorage
       let currentUser = JSON.parse(localStorage.getItem('hackathon_current_user') || 'null');
       
-      // 2. Если в localStorage пусто — проверяем сессию Supabase (для случая с подтверждением email)
       if (!currentUser) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
@@ -40,7 +38,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
             avatarUrl: session.user.user_metadata?.avatar_url,
             createdAt: session.user.created_at,
           };
-          // Сохраняем в localStorage для будущих запросов
           localStorage.setItem('hackathon_current_user', JSON.stringify(currentUser));
         }
       }
@@ -50,7 +47,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
         return;
       }
       
-      // Проверка на бан в базе
       const { data: profile } = await supabase
         .from('profiles')
         .select('banned')
@@ -64,7 +60,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
         setCurrentTab(tab);
       }
     } catch (err) {
-      console.error('Ошибка проверки:', err);
       navigate('/register');
     } finally {
       setLoading(false);
@@ -79,7 +74,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
     navigate(`/dashboard/${newValue}`);
   };
 
-  // 🔥 Если загружается
   if (loading) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -88,7 +82,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
     );
   }
 
-  // 🔥 Если забанен
   if (banned) {
     return (
       <Box sx={{ maxWidth: 500, mx: 'auto', p: 4, textAlign: 'center' }}>
@@ -122,7 +115,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
 
   return (
     <Box sx={{ maxWidth: 800, mx: 'auto', p: { xs: 2, sm: 3 } }}>
-      {/* Вкладки (десктоп) */}
       <Card sx={{ mb: 3, display: { xs: 'none', md: 'block' } }}>
         <Tabs 
           value={currentTab} 
@@ -139,7 +131,6 @@ export function DashboardPage({ tab = 'profile' }: DashboardPageProps) {
         </Tabs>
       </Card>
 
-      {/* Контент вкладок */}
       {currentTab === 'profile' && <ProfileCard user={user} />}
       {currentTab === 'team' && <TeamTab user={user} />}
       {currentTab === 'cases' && <CasesTab user={user} />}

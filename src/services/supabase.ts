@@ -22,7 +22,7 @@ export const supabase: SupabaseClient = createClient(
   }
 );
 
-// 🧪 Mock-данные для разработки (пока нет бэкенда)
+
 export const mockUser: User = {
   id: 'mock-user-id',
   fullName: 'Иван Иванов',
@@ -72,7 +72,7 @@ export const mockCases: Case[] = [
     title: 'Кейс #3: AI-репетитор',
     description: 'Прототип системы персонализированного обучения...',
     maxTeams: 5,
-    slotsAvailable: 0, // занят
+    slotsAvailable: 0, 
     isActive: true,
   },
 ];

@@ -3,17 +3,16 @@ import { Box, Typography } from '@mui/material';
 interface ITTopLogoProps {
   size?: 'small' | 'medium' | 'large';
   variant?: 'color' | 'white';
-  showCollege?: boolean; // 🔥 Новый проп
+  showCollege?: boolean; 
 }
 
 export function ITTopLogo({ 
   size = 'medium', 
   variant = 'color',
-  showCollege = true // 🔥 По умолчанию показываем везде
+  showCollege = true 
 }: ITTopLogoProps) {
-  // Размеры для разных вариантов
   const sizes = {
-    small: { box: 24, top: '1.2rem', col: '0.55rem' }, // 🔥 Чуть меньше для шапки
+    small: { box: 24, top: '1.2rem', col: '0.55rem' }, 
     medium: { box: 36, top: '1.8rem', col: '0.8rem' },
     large: { box: 48, top: '2.4rem', col: '1rem' },
   };
@@ -21,7 +20,6 @@ export function ITTopLogo({
   const current = sizes[size];
   const isWhite = variant === 'white';
   
-  // 🎨 Цвета
   const bgSquare = isWhite ? '#FFFFFF' : '#9500d3';
   const textSquare = isWhite ? '#9500d3' : '#FFFFFF';
   const textTop = isWhite ? '#FFFFFF' : '#1A1A1A';
@@ -30,10 +28,8 @@ export function ITTopLogo({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      {/* Верхний ряд: [IT] top ┐ */}
       <Box sx={{ display: 'flex', alignItems: 'center', height: current.box }}>
         
-        {/* 1. Фиолетовый квадрат IT */}
         <Box
           sx={{
             width: current.box,
@@ -60,7 +56,6 @@ export function ITTopLogo({
           </Typography>
         </Box>
 
-        {/* 2. Текст "top" */}
         <Typography
           component="span"
           sx={{
@@ -75,7 +70,6 @@ export function ITTopLogo({
           top
         </Typography>
         
-        {/* 3. Фиолетовая скобка-уголок */}
         <Box
           sx={{
             width: current.box * 0.3,
@@ -88,7 +82,6 @@ export function ITTopLogo({
         />
       </Box>
       
-      {/* Нижний ряд: C O L L E G E */}
       {showCollege && (
         <Typography
           component="span"
@@ -98,7 +91,7 @@ export function ITTopLogo({
             color: textCollege,
             letterSpacing: '0.35em',
             textTransform: 'uppercase',
-            mt: 0.2, // 🔥 Чуть ближе к логотипу
+            mt: 0.2, 
             textAlign: 'center',
             width: '100%',
           }}

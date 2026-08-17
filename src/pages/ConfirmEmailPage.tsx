@@ -12,14 +12,11 @@ export function ConfirmEmailPage() {
   useEffect(() => {
     const confirmEmail = async () => {
       try {
-        // 1. Пытаемся получить сессию стандартным способом
         let { data: { session } } = await supabase.auth.getSession();
 
-        // 2. Если сессии нет, пробуем вручную достать токен из URL
         if (!session) {
           const url = new URL(window.location.href);
           
-          // Ищем токен в query-параметрах (?access_token=...)
           const token = url.searchParams.get('access_token');
           const refreshToken = url.searchParams.get('refresh_token');
 
@@ -34,7 +31,6 @@ export function ConfirmEmailPage() {
           }
         }
 
-        // 3. Проверяем, подтверждён ли email
         if (session?.user?.email_confirmed_at) {
           setStatus('success');
           setMessage('✅ Email подтверждён! Теперь вы можете войти в аккаунт.');
@@ -44,7 +40,6 @@ export function ConfirmEmailPage() {
         }
         
       } catch (err: any) {
-        console.error('❌ Confirm error:', err);
         setStatus('error');
         setMessage('❌ Произошла ошибка при подтверждении');
       }

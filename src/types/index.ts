@@ -1,4 +1,4 @@
-// 👤 Пользователь
+
 export interface User {
   id: string;
   email: string;
@@ -10,7 +10,7 @@ export interface User {
   role: 'user' | 'admin';
   avatarUrl?: string;
   createdAt: string;
-  // 🔥 Поля модерации
+
   fullNameStatus?: 'pending' | 'approved' | 'rejected';
   fullNameNote?: string;
   avatarStatus?: 'pending' | 'approved' | 'rejected';
@@ -26,7 +26,7 @@ export interface Team {
   captainId: string;
   createdAt: string;
   renameDeadline?: string;
-  // 🔥 Поля модерации команды
+
   nameStatus?: 'pending' | 'approved' | 'rejected';
   nameNote?: string;
   pendingRename?: string;
@@ -43,7 +43,7 @@ export interface Notification {
   createdAt: string;
 }
 
-// 📨 Приглашение в команду
+
 export interface Invitation {
   id: string;
   fromUserId: string;
@@ -56,7 +56,7 @@ export interface Invitation {
   expiresAt?: string;
 }
 
-// 👥 Участник команды (расширенный)
+
 export interface TeamMember {
   userId: string;
   fullName: string;
@@ -64,12 +64,12 @@ export interface TeamMember {
   uniqueCode: string;
   role: 'captain' | 'member';
   joinedAt: string;
-  invitationStatus?: 'pending' | 'accepted'; // для отображения статуса приглашения
+  invitationStatus?: 'pending' | 'accepted'; 
 }
 
 
 
-// 🎯 Кейс
+
 export interface Case {
   id: string;
   title: string;
@@ -80,13 +80,13 @@ export interface Case {
   submissionDeadline?: string;
 }
 
-// 📋 Приоритет кейса для команды
+
 export interface CasePriority {
   caseId: string;
-  priority: number; // 1 = высший приоритет
+  priority: number; 
 }
 
-// 📨 Приглашение
+
 export interface Invitation {
   id: string;
   fromUserId: string;
@@ -97,17 +97,17 @@ export interface Invitation {
   expiresAt?: string;
 }
 
-// 🔐 Ответы API
+
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
   success: boolean;
 }
 
-// 🎛️ Настройки хакатона (для админа)
+
 export interface HackathonConfig {
-  minTeamSize: number; // 2
-  maxTeamSize: number; // 5
-  caseSelectionStartTime: string; // ISO timestamp
+  minTeamSize: number; 
+  maxTeamSize: number; 
+  caseSelectionStartTime: string; 
   cases: Partial<Case>[];
 }

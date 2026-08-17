@@ -29,7 +29,6 @@ export function Layout({ children }: LayoutProps) {
   const isAdmin = currentUser?.role === 'admin';
   const isAuthPage = location.pathname === '/register' || location.pathname === '/login';
 
-  // Загрузка уведомлений (ТОЛЬКО если пользователь авторизован)
   useEffect(() => {
     if (!currentUser?.id || isAuthPage) return;
     
@@ -42,7 +41,6 @@ export function Layout({ children }: LayoutProps) {
         .limit(20);
       
       if (error) {
-        console.error('Ошибка загрузки уведомлений:', error);
         return;
       }
       
@@ -54,7 +52,6 @@ export function Layout({ children }: LayoutProps) {
     
     fetchNotifications();
     
-    // Подписка на новые уведомления
     const channel = supabase
       .channel('notifications')
       .on('postgres_changes', 
@@ -84,7 +81,6 @@ export function Layout({ children }: LayoutProps) {
     setUnreadCount(0);
   };
 
-  // 🔥 Форматируем дату корректно
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -110,7 +106,6 @@ export function Layout({ children }: LayoutProps) {
           </Box>
           
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* 🔥 Показываем колокольчик ТОЛЬКО на дашборде и админке */}
             {!isAuthPage && currentUser && (
               <>
                 <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ mr: 1 }}>
@@ -139,7 +134,6 @@ export function Layout({ children }: LayoutProps) {
         </Toolbar>
       </AppBar>
 
-      {/* Меню уведомлений */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)} sx={{ mt: 1 }}>
         <Box sx={{ px: 2, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="subtitle2" fontWeight={600}>Уведомления</Typography>

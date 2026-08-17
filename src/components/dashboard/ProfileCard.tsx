@@ -28,15 +28,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
   const [userCase, setUserCase] = useState<any>(null);
   const [loadingExtra, setLoadingExtra] = useState(true);
   
-  // 🔥 Проверка регистрации
   const [registrationEnd, setRegistrationEnd] = useState<string | null>(null);
   const [registrationClosed, setRegistrationClosed] = useState(false);
 
-  // 🔥 Определяем, свой это профиль или чужой
   const currentUser = JSON.parse(localStorage.getItem('hackathon_current_user') || '{}');
   const isOwnProfile = user.id === currentUser.id;
 
-  // 🔥 Проверяем дедлайн регистрации
   useEffect(() => {
     const fetchConfig = async () => {
       const { data } = await supabase.from('hackathon_config').select('registration_end').single();
@@ -50,22 +47,13 @@ export function ProfileCard({ user }: ProfileCardProps) {
     fetchConfig();
   }, []);
 
-  // 🔥 Определяем что на модерации и что отклонено
   const pendingItems: string[] = [];
   const rejectedItems: string[] = [];
   
-  // 🔥 ЛОГИ: проверяем статусы
-  console.log('🔍 [Status Check]', {
-    avatarUrl: avatar,
-    avatarStatus: avatarStatus,
-    fullNameStatus: fullNameStatus,
-    groupNameStatus: groupNameStatus
-  });
   
-  // 🔥 Фото добавляем в pending ТОЛЬКО если есть avatar_url
+  
   if (avatar && avatarStatus === 'pending') {
     pendingItems.push('Фотография');
-    console.log('✅ Фото добавлено в pending');
   }
   if (avatarStatus === 'rejected') rejectedItems.push('Фотография');
   
@@ -75,13 +63,10 @@ export function ProfileCard({ user }: ProfileCardProps) {
   if (groupNameStatus === 'pending') pendingItems.push('Группа');
   if (groupNameStatus === 'rejected') rejectedItems.push('Группа');
   
-  console.log('📋 pendingItems:', pendingItems);
-  console.log(' rejectedItems:', rejectedItems);
+ 
 
-  // 🔥 Загружаем ВСЕ статусы модерации из БД
   useEffect(() => {
     const fetchProfileData = async () => {
-      console.log('🔍 [fetchProfileData] Запрашиваем данные для user.id:', user.id);
       
       try {
         const { data, error } = await supabase
@@ -96,34 +81,23 @@ export function ProfileCard({ user }: ProfileCardProps) {
           .maybeSingle();
         
         if (error) {
-          console.error('❌ Ошибка запроса профиля:', error);
           return;
         }
         
-        console.log('✅ БД вернула:', {
-          avatar_url: data?.avatar_url,
-          avatar_status: data?.avatar_status,
-          group_name_status: data?.group_name_status,
-          full_name_status: data?.full_name_status
-        });
         
-        // 🔥 Сохраняем ВСЕ статусы в state
+        
         setAvatarStatus(data?.avatar_status || '');
         setFullNameStatus(data?.full_name_status || '');
         setGroupNameStatus(data?.group_name_status || '');
         
-        // Для своего профиля: показываем аватар ВСЕГДА если он есть
         if (isOwnProfile) {
           const avatarUrl = data?.avatar_url || user.avatarUrl;
-          console.log('✅ Свой профиль, avatarUrl:', avatarUrl);
           setAvatar(avatarUrl || null);
         } else {
-          // Для чужого профиля: показываем только если approved
           const status = data?.avatar_status;
           setAvatar(status === 'approved' ? data?.avatar_url : null);
         }
       } catch (err) {
-        console.error(' Ошибка в fetchProfileData:', err);
       }
     };
     
@@ -177,7 +151,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
           }
         }
       } catch (err) {
-        console.error('Ошибка загрузки доп. данных:', err);
       } finally {
         setLoadingExtra(false);
       }
@@ -194,7 +167,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
     if (file.size > 2 * 1024 * 1024) return setError('Файл > 2MB');
     if (!file.type.startsWith('image/')) return setError('Только изображения');
 
-    console.log('📸 [handleAvatarChange] Загрузка фото...');
 
     try {
       const fileExt = file.name.split('.').pop();
@@ -205,24 +177,19 @@ export function ProfileCard({ user }: ProfileCardProps) {
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       const publicUrl = data.publicUrl;
 
-      console.log(' Public URL:', publicUrl);
 
-      // Обновляем статус в БД
       await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl, avatar_status: 'pending', avatar_note: null })
         .eq('id', user.id);
       
-      console.log('✅ Фото загружено, статус pending');
       
-      // Показываем сразу (для своего профиля)
       if (isOwnProfile) {
         setAvatar(publicUrl);
         setAvatarStatus('pending');
       }
       setError(null);
     } catch (err: any) {
-      console.error('❌ Ошибка загрузки фото:', err);
       setError(err.message || 'Ошибка');
     }
   };
@@ -237,15 +204,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
       }).eq('id', user.id);
       setEditNameDialog(false);
       setFullNameStatus('pending');
-      console.log('✅ Имя отправлено на модерацию');
       setError(null);
     } catch (err: any) {
-      console.error('❌ Ошибка сохранения имени:', err);
       setError(err.message);
     }
   };
 
-  // 🔥 Функция сохранения группы
   const handleSaveGroup = async () => {
     try {
       await supabase.from('profiles').update({ 
@@ -255,10 +219,8 @@ export function ProfileCard({ user }: ProfileCardProps) {
       }).eq('id', user.id);
       setEditGroupDialog(false);
       setGroupNameStatus('pending');
-      console.log('✅ Группа отправлена на модерацию');
       setError(null);
     } catch (err: any) {
-      console.error('❌ Ошибка сохранения группы:', err);
       setError(err.message);
     }
   };
@@ -267,19 +229,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
     day: 'numeric', month: 'long', year: 'numeric' 
   });
 
-  // 🔥 Проверяем можно ли редактировать фото
-  // Можно если: (нет фото ИЛИ фото отклонено) И регистрация не закрыта
+
   const canEditAvatar = isOwnProfile && !registrationClosed && 
     (!avatar || avatarStatus === 'rejected');
   
-  console.log(' canEditAvatar:', canEditAvatar, {
-    isOwnProfile,
-    registrationClosed,
-    hasAvatar: !!avatar,
-    avatarStatus
-  });
+  
 
-  // 🔥 Проверяем можно ли редактировать имя/группу
   const canEditName = isOwnProfile && !registrationClosed && fullNameStatus === 'rejected';
   const canEditGroup = isOwnProfile && !registrationClosed && groupNameStatus === 'rejected';
 
@@ -288,14 +243,12 @@ export function ProfileCard({ user }: ProfileCardProps) {
       <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
         {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
         
-        {/* 🔥 Alert если регистрация закрыта */}
         {registrationClosed && (
           <Alert severity="info" sx={{ mb: 2 }}>
             Регистрация завершена. Редактирование данных недоступно.
           </Alert>
         )}
         
-        {/* 🔥 Alert если есть отклонения */}
         {rejectedItems.length > 0 && !registrationClosed && (
           <Alert severity="warning" sx={{ mb: 2 }}>
             <Typography variant="body2" fontWeight={600} mb={1}>
@@ -312,7 +265,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
           </Alert>
         )}
 
-        {/* 🔹 Аватар + Имя */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
           <Box 
             onClick={canEditAvatar ? handleAvatarClick : undefined} 
@@ -324,7 +276,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
               bgcolor: '#F3E5F5', position: 'relative', '&:hover': { opacity: canEditAvatar ? 0.85 : 1 } 
             }}
           >
-            {/* 🔥 Показываем аватар */}
             {avatar ? (
               <img src={avatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             ) : (
@@ -333,7 +284,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
               </Typography>
             )}
             
-            {/* 🔥 Иконка камеры — только если можно редактировать фото */}
             {canEditAvatar && (
               <Box sx={{ 
                 position: 'absolute', bottom: 2, right: 2, 
@@ -357,7 +307,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
                   </IconButton>
                 )}
               </Box>
-              {/* 🔥 Группа с карандашом */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
                 <Chip label={user.groupName} size="small" sx={{ borderColor: '#9500d3', color: '#9500d3' }} variant="outlined" />
                 {canEditGroup && (
@@ -368,7 +317,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
               </Box>
             </Box>
             
-            {/* 🔥 Бейдж "На модерации" — если есть pending */}
             {pendingItems.length > 0 && (
               <Tooltip 
                 title={
@@ -428,7 +376,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
               </Tooltip>
             )}
             
-            {/*  Бейдж "Подтверждено" — если ВСЁ approved */}
             {pendingItems.length === 0 && rejectedItems.length === 0 && (
               <Chip 
                 label="✓ Подтверждено" 
@@ -449,7 +396,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
         <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} style={{ display: 'none' }} />
         <Divider sx={{ my: 2 }} />
 
-        {/* 🔹 Дополнительная информация */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
             <Email fontSize="small" sx={{ color: 'text.secondary', mt: 0.5 }} />
@@ -516,7 +462,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
         </Box>
       </CardContent>
 
-      {/* 🔹 Диалог редактирования имени */}
       <Dialog open={editNameDialog} onClose={() => setEditNameDialog(false)}>
         <DialogTitle>Изменить ФИО</DialogTitle>
         <DialogContent>
@@ -528,7 +473,6 @@ export function ProfileCard({ user }: ProfileCardProps) {
         </DialogActions>
       </Dialog>
 
-      {/* 🔹 Диалог редактирования группы */}
       <Dialog open={editGroupDialog} onClose={() => setEditGroupDialog(false)}>
         <DialogTitle>Изменить группу</DialogTitle>
         <DialogContent>

@@ -20,7 +20,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editData, setEditData] = useState({ full_name: '', group_name: '', avatar_url: '' });
 
-  // 🔹 Загрузка данных
   useEffect(() => {
     const fetchUsers = async () => {
       setLoading(true);
@@ -38,12 +37,11 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
         const usersWithTeamStatus = profiles?.map(u => ({
           ...u,
           hasTeam: teamUserIds.has(u.id),
-          telegram: u.telegram_link //  Для совместимости
+          telegram: u.telegram_link 
         })) || [];
         
         setUsers(usersWithTeamStatus);
       } catch (err: any) {
-        console.error('❌ Ошибка загрузки:', err);
         setError('Не удалось загрузить статистику');
       } finally {
         setLoading(false);
@@ -52,7 +50,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
     fetchUsers();
   }, [setError]);
 
-  // 🔹 Фильтрация по поиску
   const filteredUsers = users.filter(u => {
     const q = search.toLowerCase();
     return (
@@ -63,12 +60,10 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
     );
   });
 
-  // 🔹 Статистика
   const totalRegistered = users.length;
   const withoutTeam = users.filter(u => !u.hasTeam).length;
   const withTeam = totalRegistered - withoutTeam;
 
-  // 🔹 Редактирование пользователя
   const handleEditUser = (user: any) => {
     setEditingUser(user);
     setEditData({
@@ -94,7 +89,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
       if (error) throw error;
       setSuccess('✅ Данные обновлены');
       setEditDialogOpen(false);
-      // Перезагружаем список
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, telegram_link, group_name, avatar_url, role, banned')
@@ -105,7 +99,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
     }
   };
 
-  // 🔹 Бан/разбан
   const handleToggleBan = async (userId: string, currentBanned: boolean) => {
     try {
       const { error } = await supabase
@@ -124,7 +117,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* 🔹 Карточки статистики */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <Paper sx={{ p: 3, borderRadius: 2, minWidth: 200, bgcolor: '#E3F2FD' }}>
           <Typography variant="h4" fontWeight={700} color="primary">{totalRegistered}</Typography>
@@ -140,7 +132,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
         </Paper>
       </Box>
 
-      {/* 🔹 Поиск */}
       <TextField
         fullWidth
         placeholder="Поиск: имя, Telegram, email, телефон..."
@@ -151,7 +142,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
         }}
       />
 
-      {/* 🔹 Таблица пользователей */}
       <TableContainer component={Paper} sx={{ borderRadius: 2 }}>
         <Table>
           <TableHead>
@@ -206,7 +196,6 @@ export function StatisticsTab({ setError, setSuccess }: StatisticsTabProps) {
         </Table>
       </TableContainer>
 
-      {/* 🔹 Диалог редактирования */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>✏️ Редактировать пользователя</DialogTitle>
         <DialogContent>

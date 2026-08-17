@@ -6,7 +6,6 @@
     "module": "ESNext",
     "skipLibCheck": true,
 
-    /* 🔥 Ключевые настройки для MUI + React */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
@@ -14,14 +13,12 @@
     "noEmit": true,
     "jsx": "react-jsx",
     
-    /* 🔥 Смягчаем строгость для разработки */
     "strict": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noImplicitAny": false,
     "noImplicitReturns": false,
     
-    /* Пути (опционально, но удобно) */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]

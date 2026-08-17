@@ -11,13 +11,10 @@ function App() {
   return (
     <Layout>
       <Routes>
-        {/* Редирект с корня на регистрацию */}
         <Route path="/" element={<Navigate to="/register" replace />} />
         
-        {/* Публичные маршруты */}
         <Route path="/register" element={<RegisterPage />} />
         
-        {/* Защищённые маршруты (позже добавим auth-guard) */}
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/dashboard/profile" element={<DashboardPage tab="profile" />} />
         <Route path="/dashboard/team" element={<DashboardPage tab="team" />} />
@@ -26,10 +23,8 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 <Route path="/reset-password" element={<ResetPasswordPage />} />
         
-        {/* Админка (позже) */}
         <Route path="/admin" element={<AdminPage />} />
         
-        {/* 404 */}
         <Route path="*" element={
           <div style={{ padding: '48px', textAlign: 'center' }}>
             <h2>🔍 Страница не найдена</h2>

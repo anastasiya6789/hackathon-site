@@ -6,12 +6,11 @@ export function BottomNav() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Определяем текущую вкладку
   const getCurrentValue = () => {
     if (location.pathname.includes('/profile')) return 'profile';
     if (location.pathname.includes('/team')) return 'team';
     if (location.pathname.includes('/cases')) return 'cases';
-    return 'profile'; // default
+    return 'profile'; 
   };
 
   const handleChange = (event: React.SyntheticEvent, newValue: string) => {
@@ -26,7 +25,7 @@ export function BottomNav() {
         left: 0, 
         right: 0, 
         zIndex: 100,
-        display: { xs: 'block', md: 'none' }, // только на мобильных
+        display: { xs: 'block', md: 'none' }, 
         borderTop: '1px solid rgba(0,0,0,0.06)',
       }}
       elevation={3}

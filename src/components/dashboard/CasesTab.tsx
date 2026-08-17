@@ -27,16 +27,15 @@ export function CasesTab({ user }: CasesTabProps) {
   const [teamId, setTeamId] = useState<string | null>(null);
   const [myAssignment, setMyAssignment] = useState<any>(null);
   
-  // 🔥 Новое: отслеживаем, сохранены ли приоритеты
+
   const [prioritiesSaved, setPrioritiesSaved] = useState(false);
 
-  // 🔹 Загрузка данных
   useEffect(() => {
     const loadData = async () => {
       setCasesLoading(true);
       
       try {
-        // 1. Проверяем, капитан ли пользователь
+        
         const { data: membership } = await supabase
           .from('team_members')
           .select('team_id, role')
@@ -47,7 +46,7 @@ export function CasesTab({ user }: CasesTabProps) {
         setIsCaptain(captain);
         if (captain) setTeamId(membership.team_id);
         
-        // 2. Проверяем, есть ли уже назначенный кейс
+       
         if (captain && membership.team_id) {
           const { data: assignment } = await supabase
             .from('team_case_assignments')
@@ -61,7 +60,7 @@ export function CasesTab({ user }: CasesTabProps) {
           }
         }
         
-        // 3. Загружаем конфиг
+       
         const { data: config } = await supabase
           .from('hackathon_config')
           .select('case_selection_start')
@@ -72,7 +71,7 @@ export function CasesTab({ user }: CasesTabProps) {
         setCaseSelectionOpen(selectionStart ? now >= selectionStart : false);
         setCaseSelectionStart(config?.case_selection_start || null);
         
-        // 4. Загружаем опубликованные кейсы
+      
         const { data: casesData } = await supabase
           .from('cases')
           .select('*')
@@ -82,7 +81,7 @@ export function CasesTab({ user }: CasesTabProps) {
         
         setCases(casesData || []);
         
-        // 5. Если капитан — загружаем его приоритеты
+       
         if (captain && membership.team_id && !myAssignment) {
           const { data: savedPriorities } = await supabase
             .from('team_case_priorities')
@@ -96,7 +95,6 @@ export function CasesTab({ user }: CasesTabProps) {
         }
         
       } catch (err: any) {
-        console.error('Ошибка загрузки:', err);
         setError('Не удалось загрузить данные');
       } finally {
         setCasesLoading(false);
@@ -106,11 +104,11 @@ export function CasesTab({ user }: CasesTabProps) {
     loadData();
   }, [user.id]);
 
-  // 🔹 Изменение приоритета (1-5, максимум 5 кейсов)
+  
   const handlePriorityChange = (caseId: string, priority: number) => {
     if (!isCaptain || submitted) return;
     
-    // 🔥 Максимум 5 приоритетов
+    
     if (Object.keys(priorities).length >= 5 && !priorities[caseId]) {
       setError('Можно выбрать максимум 5 приоритетов');
       setTimeout(() => setError(null), 2000);
@@ -120,28 +118,27 @@ export function CasesTab({ user }: CasesTabProps) {
     setPriorities(prev => {
       const newPriorities = { ...prev };
       
-      // Если этот кейс уже имеет этот приоритет — убираем
+      
       if (newPriorities[caseId] === priority) {
         delete newPriorities[caseId];
       } else {
-        // Если этот приоритет занят другим кейсом — освобождаем его
+        
         const existingCase = Object.entries(newPriorities).find(([cid, p]) => p === priority && cid !== caseId);
         if (existingCase) {
           delete newPriorities[existingCase[0]];
         }
-        // Ставим новый приоритет
+       
         newPriorities[caseId] = priority;
       }
       
       return newPriorities;
     });
     
-    // 🔥 Сбрасываем флаг сохранения, если приоритеты изменились
+    
     setPrioritiesSaved(false);
   };
 
-  // 🔹 Сохранение приоритетов в БД (можно менять сколько угодно раз)
-  // 🔹 Сохранение приоритетов в БД (можно менять сколько угодно раз)
+  
 const handleSavePriorities = async () => {
   if (!teamId) return;
   
@@ -149,36 +146,33 @@ const handleSavePriorities = async () => {
   setError(null);
   
   try {
-    // 🔥 Удаляем старые приоритеты
+    
     const { error: deleteError } = await supabase
       .from('team_case_priorities')
       .delete()
       .eq('team_id', teamId);
     
     if (deleteError) {
-      console.error('❌ Ошибка удаления старых приоритетов:', deleteError);
       throw deleteError;
     }
     
-    // 🔥 Сохраняем новые приоритеты
+    
     const prioritiesArray = Object.entries(priorities).map(([caseId, priority]) => ({
       team_id: teamId,
       case_id: caseId,
-      priority: Number(priority) // 🔥 Гарантируем, что priority — число!
+      priority: Number(priority) 
     }));
     
-    console.log('💾 Сохраняем приоритеты:', prioritiesArray);
     
     if (prioritiesArray.length > 0) {
-      // 🔥 Используем upsert с onConflict для обработки дубликатов
+      
       const { error: insertError } = await supabase
         .from('team_case_priorities')
         .upsert(prioritiesArray, {
-          onConflict: 'team_id,case_id' // 🔥 Уникальный ключ: team_id + case_id
+          onConflict: 'team_id,case_id' 
         });
       
       if (insertError) {
-        console.error('❌ Ошибка сохранения приоритетов:', insertError);
         throw insertError;
       }
     }
@@ -188,42 +182,37 @@ const handleSavePriorities = async () => {
     setTimeout(() => setSuccess(null), 3000);
     
   } catch (err: any) {
-    console.error('Ошибка сохранения:', err);
     setError(err.message || 'Не удалось сохранить приоритеты');
   } finally {
     setSubmitting(false);
   }
 };
-//  Функция для получения signed URL
+
 const getSignedUrl = async (fileUrl: string) => {
   try {
-    // Извлекаем путь из URL
+   
     const urlParts = fileUrl.split('/storage/v1/object/public/case-files/');
     if (urlParts.length < 2) return fileUrl;
     
     const filePath = urlParts[1];
     
-    // Генерируем signed URL на 1 час
+    
     const { data: { signedUrl }, error } = await supabase.storage
       .from('case-files')
-      .createSignedUrl(filePath, 60 * 60); // 1 час
+      .createSignedUrl(filePath, 60 * 60); 
     
     if (error || !signedUrl) {
-      console.error('❌ Ошибка создания signed URL:', error);
       return fileUrl;
     }
     
     return signedUrl;
   } catch (err) {
-    console.error('❌ Ошибка получения signed URL:', err);
     return fileUrl;
   }
 };
-// 🔹 Функция для кнопки скачивания файла (СИНХРОННАЯ!)
-// 🔹 Функция для кнопки скачивания файла
+
 const renderFileLink = (fileUrl: string | null | undefined, fileName: string | null | undefined) => {
   if (!fileUrl || !fileName) {
-    console.log('⚠️ Файл не найден:', { fileUrl, fileName });
     return null;
   }
   
@@ -231,7 +220,7 @@ const renderFileLink = (fileUrl: string | null | undefined, fileName: string | n
     <Button 
       variant="outlined" 
       size="small" 
-      onClick={() => downloadFileViaBlob(fileUrl, fileName)} // 🔥 Вызываем blob-функцию
+      onClick={() => downloadFileViaBlob(fileUrl, fileName)} 
       startIcon={<span>⬇️</span>}
       sx={{ mt: 2 }}
     >
@@ -239,7 +228,7 @@ const renderFileLink = (fileUrl: string | null | undefined, fileName: string | n
     </Button>
   );
 };
-// 🔹 Универсальная функция скачивания любого файла через Blob
+
 const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
   try {
     let downloadUrl = fileUrl;
@@ -247,13 +236,13 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
       downloadUrl = await getSignedUrl(fileUrl);
     }
     
-    // 🔥 Fetch файл как blob (обходит cross-origin ограничения)
+    
     const response = await fetch(downloadUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     
     const blob = await response.blob();
     
-    // 🔥 Создаём blob URL и скачиваем
+  
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = blobUrl;
@@ -262,20 +251,18 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
     link.click();
     document.body.removeChild(link);
     
-    // 🔥 Чистим blob URL
+  
     window.URL.revokeObjectURL(blobUrl);
     
   } catch (err) {
-    console.error('❌ Ошибка скачивания:', err);
     setError('Не удалось скачать файл');
   }
 };
 
-  // 🔹 Отправка выбора (first-come-first-served)
+ 
   const handleSubmit = async () => {
-  // 🔥 Защита от повторных нажатий
+ 
   if (submitting || submitted) {
-    console.log('⚠️ Отправка уже в процессе или завершена');
     return;
   }
   
@@ -298,10 +285,10 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
     setError(null);
     
     try {
-      // 🔥 Сначала сохраняем приоритеты (на всякий случай)
+      
       await handleSavePriorities();
       
-      // 🔥 Сортируем приоритеты: [1, 2, 3, 4, 5]
+    
       const sortedPriorities = Object.entries(priorities)
         .sort((a, b) => a[1] - b[1])
         .map(([caseId]) => caseId);
@@ -309,7 +296,7 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
       let assigned = false;
       let assignedCaseId: string | null = null;
       
-      // 🔥 Шаг 1: Пытаемся занять место по приоритетам (1 → 2 → 3 → 4 → 5)
+      
       for (const caseId of sortedPriorities) {
         const { data: caseData, error: fetchError } = await supabase
           .from('cases')
@@ -317,12 +304,11 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
           .eq('id', caseId)
           .single();
         
-        // Пропускаем если кейс не опубликован или мест нет
+       
         if (fetchError || !caseData || !caseData.published_at || caseData.slots_available <= 0) {
           continue;
         }
         
-        // 🔥 Атомарное обновление: уменьшаем slots_available ТОЛЬКО если оно не изменилось
         const { error: updateError } = await supabase
           .from('cases')
           .update({ slots_available: caseData.slots_available - 1 })
@@ -330,9 +316,7 @@ const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
           .eq('slots_available', caseData.slots_available);
         
         if (!updateError) {
-          // 🔥 Успешно заняли место — назначаем кейс команде
-          // 🔥 Успешно заняли место — назначаем кейс команде
-console.log('🎯 Пытаемся назначить кейс:', caseId, 'команде:', teamId);
+          
 
 const { data: assignment, error: assignError } = await supabase
   .from('team_case_assignments')
@@ -341,34 +325,31 @@ const { data: assignment, error: assignError } = await supabase
   .single();
 
 if (assignError) {
-  console.error('❌ Ошибка назначения кейса:', assignError);
-  // 🔥 Если RLS ошибка — пробросим её вверх
+  
   if (assignError.code === '42501') {
     throw new Error('Нет прав для назначения кейса. Проверьте RLS политики.');
   }
-  continue; // Пробуем следующий приоритет
+  continue; 
 }
 
-console.log('✅ Кейс назначен:', assignment);
 assigned = true;
 assignedCaseId = caseId;
 break;
         }
       }
       
-      // 🔥 Шаг 2: Если приоритеты не сработали — ищем ЛЮБОЙ свободный кейс
+      
       if (!assigned) {
-        console.log('🔍 Приоритеты заняты, ищем любой свободный кейс...');
         
         const { data: availableCases } = await supabase
           .from('cases')
           .select('id, slots_available, published_at')
           .not('published_at', 'is', null)
           .gt('slots_available', 0)
-          .order('created_at'); // 🔥 Берём самый старый (первый опубликованный)
+          .order('created_at'); 
         
         for (const caseItem of availableCases || []) {
-          // Пропускаем кейсы, которые уже были в приоритетах (их уже пробовали)
+          
           if (sortedPriorities.includes(caseItem.id)) continue;
           
           const { error: updateError } = await supabase
@@ -396,11 +377,11 @@ break;
         return;
       }
       
-      // 🔥 Успех!
+   
       setSubmitted(true);
       setSuccess('🎉 Ваш выбор отправлен! Кейс назначен.');
       
-      // Обновляем assignment
+    
       const { data: newAssignment } = await supabase
         .from('team_case_assignments')
         .select('*, cases(*)')
@@ -410,14 +391,13 @@ break;
       if (newAssignment) setMyAssignment(newAssignment);
       
     } catch (err: any) {
-      console.error('Ошибка отправки:', err);
       setError(err.message || 'Произошла ошибка при отправке');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // 🔹 Рендер: загрузка
+  
   if (casesLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -426,7 +406,7 @@ break;
     );
   }
 
-  // 🔹 Рендер: уже назначенный кейс
+ 
   if (submitted && myAssignment) {
     const assignedCase = myAssignment.cases;
     return (
@@ -464,7 +444,7 @@ break;
     );
   }
 
-  // 🔹 Рендер: кейсы ещё не опубликованы
+  
   if (!cases.length) {
     return (
       <Card sx={{ borderRadius: 2, textAlign: 'center', p: 4 }}>
@@ -479,13 +459,12 @@ break;
     );
   }
 
-  // 🔹 Рендер: список кейсов
+ 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
       {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
       
-      {/* 🔹 Инфо-блок для капитанов: кейсы опубликованы, выбор ещё не открыт */}
       {isCaptain && !caseSelectionOpen && cases.length > 0 && !submitted && (
         <Alert severity="info" sx={{ borderRadius: 2, mt: 2 }}>
           <Typography fontWeight={600}>⏳ Кейсы опубликованы, ожидайте старта выбора</Typography>
@@ -498,7 +477,6 @@ break;
         </Alert>
       )}
       
-      {/* 🔹 Инфо-блок для капитанов: выбор открыт */}
       {isCaptain && caseSelectionOpen && !submitted && (
         <Alert severity="info" sx={{ borderRadius: 2 }}>
           <Typography fontWeight={600} mb={0.5}>🎯 Как работает выбор:</Typography>
@@ -510,7 +488,6 @@ break;
         </Alert>
       )}
       
-      {/* 🔹 Инфо-блок для участников (не капитанов) */}
       {!isCaptain && (
         <Alert severity="info" sx={{ borderRadius: 2 }}>
           <Typography fontWeight={600}>👤 Вы участник команды</Typography>
@@ -521,13 +498,11 @@ break;
         </Alert>
       )}
       
-      {/* 🔹 Список кейсов */}
       {cases.map(caseItem => {
         const isFull = caseItem.slots_available <= 0;
         const isPublished = !!caseItem.published_at;
         const myPriority = priorities[caseItem.id];
         
-        // 🔥 Не показываем кейсы, которые ещё не опубликованы
         if (!isPublished) return null;
         
         return (
@@ -541,7 +516,6 @@ break;
             }}
           >
             <CardContent sx={{ p: 2 }}>
-              {/* Заголовок + статус */}
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1, gap: 1 }}>
                 <Typography variant="h6" fontWeight={600}>{caseItem.title}</Typography>
                 <Chip 
@@ -551,12 +525,10 @@ break;
                 />
               </Box>
               
-              {/* Описание */}
               <Typography variant="body2" color="text.secondary" mb={2}>
                 {caseItem.description}
               </Typography>
               
-              {/* Теги */}
               <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
                 <Chip 
                   label={caseItem.difficulty === 'easy' ? '🟢 Лёгкий' : caseItem.difficulty === 'medium' ? '🟡 Средний' : '🔴 Сложный'} 
@@ -580,7 +552,6 @@ break;
 )}
               </Box>
               
-              {/* 🔹 Приоритеты (только для капитанов, когда нет назначения и кейс не занят) */}
               {isCaptain && !submitted && !isFull && (
                 <>
                   <Divider sx={{ my: 1.5 }} />
@@ -621,14 +592,12 @@ break;
                 </>
               )}
               
-              {/* 🔹 Статус для участников */}
               {!isCaptain && (
                 <Typography variant="caption" color="text.secondary" display="block" mt={1}>
                   🔐 Приоритеты устанавливает капитан команды
                 </Typography>
               )}
               
-              {/* 🔹 Кейс занят */}
               {isFull && (
                 <Typography variant="caption" color="error" display="block" mt={1}>
                   ⚠️ Места в этом кейсе закончились
@@ -639,11 +608,9 @@ break;
         );
       })}
 
-      {/* 🔹 Кнопки для капитанов */}
       {isCaptain && !submitted && Object.keys(priorities).length > 0 && (
         <Box sx={{ display: 'flex', gap: 2, mt: 2, flexWrap: 'wrap' }}>
           
-          {/* 🔹 Кнопка "Сохранить приоритеты" — всегда доступна, пока выбор не открыт или открыт */}
           <Button
             variant="outlined"
             size="large"
@@ -663,7 +630,6 @@ break;
             {prioritiesSaved ? '✅ Сохранено' : '💾 Сохранить приоритеты'}
           </Button>
           
-          {/* 🔹 Кнопка "Отправить выбор" — только когда выбор открыт */}
           {caseSelectionOpen && (
             <Button
               variant="contained"
@@ -683,14 +649,12 @@ break;
         </Box>
       )}
       
-      {/* 🔹 Подсказка если нет приоритетов */}
       {isCaptain && !submitted && Object.keys(priorities).length === 0 && (
         <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ mt: 2 }}>
           👆 Расставьте приоритеты (1-5) хотя бы одному кейсу, чтобы сохранить выбор
         </Typography>
       )}
       
-      {/* 🔹 Подсказка про лимит 5 приоритетов */}
       {isCaptain && !submitted && Object.keys(priorities).length === 5 && (
         <Typography variant="caption" color="text.secondary" textAlign="center" sx={{ mt: 1 }}>
           ✅ Вы выбрали максимум 5 приоритетов

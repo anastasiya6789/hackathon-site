@@ -1,4 +1,3 @@
-// 🔥 Расширяем типы MUI для работы с sx, ownerState и кастомной темой
 import '@mui/material/styles';
 
 declare module '@mui/material/styles' {
@@ -13,7 +12,6 @@ declare module '@mui/material/styles' {
     };
   }
   
-  // Разрешаем sx-проп для всех компонентов
   interface ComponentNameToClassKey {
     MuiButton: 'root' | 'containedPrimary' | 'sizeLarge';
     MuiCard: 'root';
@@ -28,7 +26,6 @@ declare module '@mui/material/Button' {
   }
 }
 
-// 🔥 Разрешаем any для ownerState в styleOverrides (временно)
 declare module '@mui/material/styles/components' {
   interface ComponentsOverrides {
     MuiButton?: {

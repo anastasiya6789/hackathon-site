@@ -21,7 +21,6 @@ interface TeamsTabProps {
 
 export function TeamsTab({ teamsPending, setTeamsPending, setError, setSuccess, noteDialog, setNoteDialog, note, setNote }: TeamsTabProps) {
   
-  // 🔹 Обработка модерации команды
   const handleTeamModeration = async (teamId: string, approved: boolean, customName?: string) => {
     try {
       const team = teamsPending.find(t => t.id === teamId);
@@ -125,7 +124,6 @@ export function TeamsTab({ teamsPending, setTeamsPending, setError, setSuccess, 
         </Table>
       </TableContainer>
 
-      {/* 🔹 Диалог для команд (отклонение с комментарием) */}
       <Dialog open={noteDialog.open && noteDialog.field === 'team'} onClose={() => setNoteDialog({ ...noteDialog, open: false })} maxWidth="sm" fullWidth>
         <DialogTitle>❌ Отклонить название команды</DialogTitle>
         <DialogContent>

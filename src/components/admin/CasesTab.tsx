@@ -16,14 +16,12 @@ interface CasesTabProps {
 
 export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabProps) {
   
-  // 🔹 Локальные state
   const [cases, setCases] = useState<any[]>([]);
   const [casesLoading, setCasesLoading] = useState(true);
   const [casePublishTime, setCasePublishTime] = useState('');
   const [publishing, setPublishing] = useState(false);
   const [uploading, setUploading] = useState(false);
   
-  // 🔥 slots теперь string, чтобы можно было стирать
   const [newCase, setNewCase] = useState({ 
     title: '', description: '', difficulty: 'medium' as 'easy' | 'medium' | 'hard', slots: '1', file: null as File | null 
   });
@@ -31,7 +29,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editData, setEditData] = useState({ title: '', description: '', difficulty: 'medium' as 'easy' | 'medium' | 'hard', slots: '1', file: null as File | null });
 
-  // 🔹 Загрузка кейсов
   useEffect(() => {
     const fetchCases = async () => {
       setCasesLoading(true);
@@ -42,7 +39,7 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
           .order('created_at', { ascending: false });
         setCases(data || []);
       } catch (err: any) {
-        console.error(' Ошибка загрузки кейсов:', err);
+        
         setError('Не удалось загрузить кейсы');
       } finally {
         setCasesLoading(false);
@@ -51,7 +48,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
     fetchCases();
   }, [setError]);
 
-  // 🔹 Скачивание файла
   const downloadFileViaBlob = async (fileUrl: string, fileName: string) => {
     try {
       const response = await fetch(fileUrl);
@@ -66,12 +62,11 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
       document.body.removeChild(link);
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
-      console.error('❌ Ошибка скачивания:', err);
+      
       setError('Не удалось скачать файл');
     }
   };
 
-  // 🔹 Создание кейса
   const handleCreateCase = async () => {
     if (!newCase.title) return setError('Введите название кейса');
     setUploading(true);
@@ -88,7 +83,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
         fileName = newCase.file.name;
         fileType = fileExt;
       }
-      // 🔥 Парсим slots при отправке в БД
       const { error } = await supabase.from('cases').insert({
         title: newCase.title, description: newCase.description, difficulty: newCase.difficulty,
         slots_total: parseInt(newCase.slots) || 1, slots_available: parseInt(newCase.slots) || 1,
@@ -106,7 +100,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
     }
   };
 
-  // 🔹 Публикация кейсов
   const handlePublishCases = async (immediate: boolean) => {
     setPublishing(true);
     try {
@@ -125,7 +118,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
     }
   };
 
-  // 🔹 Удаление кейса
   const handleDeleteCase = async (caseId: string) => {
     if (!confirm('Удалить этот кейс?')) return;
     try {
@@ -144,7 +136,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
     }
   };
 
-  // 🔹 Редактирование
   const handleEditCase = (caseItem: any) => {
     setEditingCase(caseItem);
     // 🔥 Преобразуем number в string для editData
@@ -176,7 +167,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
         if (urlError || !signedUrl) throw new Error('Не удалось получить ссылку на файл');
         fileUrl = signedUrl; fileName = editData.file.name; fileType = fileExt;
       }
-      // 🔥 Парсим slots при отправке в БД
       const { error } = await supabase.from('cases').update({
         title: editData.title, description: editData.description, difficulty: editData.difficulty,
         slots_total: parseInt(editData.slots) || 1, slots_available: parseInt(editData.slots) || 1,
@@ -206,7 +196,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
             <MenuItem value="easy">🟢 Лёгкий</MenuItem><MenuItem value="medium">🟡 Средний</MenuItem><MenuItem value="hard">🔴 Сложный</MenuItem>
           </Select>
         </FormControl>
-        {/* 🔥 Теперь slots — string, onChange просто сохраняет значение */}
         <TextField 
           type="number" 
           placeholder="Количество мест *" 
@@ -276,7 +265,6 @@ export function CasesTab({ caseSelectionStart, setError, setSuccess }: CasesTabP
                 <MenuItem value="easy">🟢 Лёгкий</MenuItem><MenuItem value="medium">🟡 Средний</MenuItem><MenuItem value="hard">🔴 Сложный</MenuItem>
               </Select>
             </FormControl>
-            {/* 🔥 Теперь slots — string, onChange просто сохраняет значение */}
             <TextField 
               label="Количество мест *"
               type="number"

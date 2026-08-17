@@ -33,7 +33,6 @@ export function RegisterPage() {
           .single();
         
         if (error) {
-          console.error('❌ Ошибка загрузки конфига:', error);
           setRegistrationBlocked(false);
           return;
         }
@@ -53,7 +52,6 @@ export function RegisterPage() {
           setRegistrationBlocked(false);
         }
       } catch (err) {
-        console.error('❌ Ошибка проверки регистрации:', err);
         setRegistrationBlocked(false);
       } finally {
         setConfigLoading(false);
@@ -72,7 +70,6 @@ export function RegisterPage() {
     
     try {
       if (mode === 'register') {
-        // 🔥 1. Проверяем email в profiles
         const { data: existingEmail } = await supabase
           .from('profiles')
           .select('id')
@@ -83,7 +80,6 @@ export function RegisterPage() {
           throw new Error('Пользователь с таким email уже зарегистрирован');
         }
         
-        // 🔥 2. Проверяем телефон в profiles
         const phoneDigits = data.phone?.replace(/\D/g, '');
         if (phoneDigits) {
           const { data: existingPhone } = await supabase
@@ -97,7 +93,6 @@ export function RegisterPage() {
           }
         }
         
-        // 3. Генерируем уникальный код
         let uniqueCode = generateUniqueCode();
         let attempts = 0;
         while (attempts < 10) {
@@ -112,8 +107,7 @@ export function RegisterPage() {
           attempts++;
         }
         
-        // 4. Регистрируем через Supabase Auth
-        // 🔥 ВОЗВРАЩАЕМ ПРАВИЛЬНЫЙ REDIRECT: с хешем для HashRouter
+       
 const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-email`;        
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: (data.email || '').toLowerCase().trim(),
@@ -126,13 +120,11 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
               group_name: data.groupName?.trim(),
               telegram_link: data.telegramLink?.trim(),
             },
-            // 🔥 Указываем, куда отправить пользователя после клика по письму
             emailRedirectTo: redirectUrl,
           },
         });
 
         if (authError) {
-          console.error('❌ Auth error:', authError);
           
           if (authError.message?.includes('User already registered')) {
             throw new Error('Пользователь с таким email уже зарегистрирован');
@@ -170,7 +162,6 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
         };
 
       } else {
-        // === ВХОД ===
         
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
           email: (data.email || '').toLowerCase().trim(),
@@ -178,7 +169,6 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
         });
 
         if (authError) {
-          console.error('❌ Login error:', authError);
           
           if (authError.message?.includes('Invalid login credentials')) {
             throw new Error('Неверный email или пароль');
@@ -201,7 +191,6 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
           .maybeSingle();
 
         if (profileError) {
-          console.error('❌ Profile error:', profileError);
           throw new Error('Ошибка загрузки профиля');
         }
 
@@ -220,7 +209,6 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
         };
       }
     } catch (err: any) {
-      console.error('💥 Register error:', err);
       
       if (err?.message) {
         throw err;

@@ -13,7 +13,6 @@ export function EmailConfirmationScreen({ email, onResend }: EmailConfirmationSc
   
   const handleResend = async () => {
     try {
-      // 🔥 ВОЗВРАЩАЕМ ПРАВИЛЬНЫЙ REDIRECT: с хешем для HashRouter
 const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-email`;      
       const { error } = await supabase.auth.resend({
         type: 'signup',
@@ -28,7 +27,6 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
       if (onResend) onResend();
       
     } catch (err: any) {
-      console.error('❌ Resend error:', err);
       alert('Не удалось отправить письмо. Попробуйте позже.');
     }
   };
@@ -53,7 +51,7 @@ const redirectUrl = `${window.location.origin}/hackathon-site/?type=confirm-emai
           <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
             <Typography variant="body2">
               🔹 Проверьте папку "Спам", если письмо не пришло<br/>
-              🔹 Ссылка действительна 24 часа<br/>
+              🔹 Ссылка действительна 1 час<br/>
               🔹 После подтверждения вы сможете войти в аккаунт
             </Typography>
           </Alert>
